@@ -12,17 +12,10 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 const LOADING_DURATION = 2;
 const TRANSITION_DURATION = 2.2;
 const LOADING_OUT_DURATION = 0.7;
-const LABEL_COLOR_DURATION = 1.7;
 const ARROW_IN_DURATION = 2;
 const POLYGON_LOADING_SCALE = 4;
 const POLYGON_END_SCALE = 2;
 const NEXT_SECTION_ID = "section-2";
-
-function getCssVar(name: string) {
-  return getComputedStyle(document.documentElement)
-    .getPropertyValue(name)
-    .trim();
-}
 
 function getPolygonCenterOffset(wrapper: HTMLElement) {
   const rect = wrapper.getBoundingClientRect();
@@ -35,7 +28,6 @@ function getPolygonCenterOffset(wrapper: HTMLElement) {
 
 type PreloaderElements = {
   loader: HTMLElement;
-  nav: HTMLDivElement;
   polygonWrapper: HTMLDivElement;
   polygon: SVGPolygonElement;
   arrowInner: HTMLDivElement;
@@ -43,23 +35,14 @@ type PreloaderElements = {
   scrollDown: HTMLSpanElement | null;
 };
 
-type PreloaderColors = {
-  primaryColor: string;
-  backgroundColor: string;
-};
-
-function setInitialState(
-  {
-    loader,
-    nav,
-    polygonWrapper,
-    polygon,
-    arrowInner,
-    loadingText,
-    scrollDown,
-  }: PreloaderElements,
-  colors: PreloaderColors,
-) {
+function setInitialState({
+  loader,
+  polygonWrapper,
+  polygon,
+  arrowInner,
+  loadingText,
+  scrollDown,
+}: PreloaderElements) {
   const centerOffset = getPolygonCenterOffset(polygonWrapper);
   const strokeLength = polygon.getTotalLength();
 
@@ -75,7 +58,6 @@ function setInitialState(
     strokeDashoffset: strokeLength,
     strokeOpacity: 1,
   });
-  gsap.set(nav, { color: colors.backgroundColor });
   gsap.set(arrowInner, { yPercent: -120 });
 
   if (loadingText) {
@@ -90,10 +72,9 @@ function setInitialState(
 
 function createReducedMotionTimeline(
   elements: PreloaderElements,
-  colors: PreloaderColors,
   onComplete: () => void,
 ) {
-  const { loader, polygonWrapper, polygon, nav, arrowInner } = elements;
+  const { loader, polygonWrapper, polygon, arrowInner } = elements;
 
   return gsap
     .timeline({ onComplete })
@@ -104,13 +85,11 @@ function createReducedMotionTimeline(
       0,
     )
     .set(polygon, { strokeOpacity: 0.1 }, 0.2)
-    .set(nav, { color: colors.primaryColor }, 0.2)
     .set(arrowInner, { yPercent: 0 }, 0.2);
 }
 
 function createMainTimeline(
   elements: PreloaderElements,
-  colors: PreloaderColors,
   strokeLength: number,
   onComplete: () => void,
 ) {
@@ -120,7 +99,6 @@ function createMainTimeline(
     scrollDown,
     loader,
     polygonWrapper,
-    nav,
     arrowInner,
   } = elements;
 
@@ -184,15 +162,6 @@ function createMainTimeline(
       LOADING_DURATION,
     )
     .to(
-      nav,
-      {
-        color: colors.primaryColor,
-        duration: LABEL_COLOR_DURATION,
-        ease: "power2.out",
-      },
-      LOADING_DURATION,
-    )
-    .to(
       arrowInner,
       {
         yPercent: 0,
@@ -206,7 +175,6 @@ function createMainTimeline(
 export function PreLoader() {
   const [isInteractive, setIsInteractive] = useState(false);
   const loaderRef = useRef<HTMLElement>(null);
-  const navRef = useRef<HTMLDivElement>(null);
   const polygonWrapperRef = useRef<HTMLDivElement>(null);
   const polygonRef = useRef<SVGPolygonElement>(null);
   const arrowInnerRef = useRef<HTMLDivElement>(null);
@@ -230,7 +198,6 @@ export function PreLoader() {
   useLayoutEffect(() => {
     const elements: PreloaderElements = {
       loader: loaderRef.current as HTMLElement,
-      nav: navRef.current as HTMLDivElement,
       polygonWrapper: polygonWrapperRef.current as HTMLDivElement,
       polygon: polygonRef.current as SVGPolygonElement,
       arrowInner: arrowInnerRef.current as HTMLDivElement,
@@ -240,18 +207,12 @@ export function PreLoader() {
 
     if (
       !elements.loader ||
-      !elements.nav ||
       !elements.polygonWrapper ||
       !elements.polygon ||
       !elements.arrowInner
     ) {
       return;
     }
-
-    const colors: PreloaderColors = {
-      primaryColor: getCssVar("--primary"),
-      backgroundColor: getCssVar("--background"),
-    };
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -262,7 +223,7 @@ export function PreLoader() {
       smoother?.paused(false);
     };
 
-    const { strokeLength } = setInitialState(elements, colors);
+    const { strokeLength } = setInitialState(elements);
 
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -279,8 +240,8 @@ export function PreLoader() {
     };
 
     const timeline = prefersReducedMotion
-      ? createReducedMotionTimeline(elements, colors, finishPreloader)
-      : createMainTimeline(elements, colors, strokeLength, finishPreloader);
+      ? createReducedMotionTimeline(elements, finishPreloader)
+      : createMainTimeline(elements, strokeLength, finishPreloader);
 
     return () => {
       timeline.kill();
@@ -297,10 +258,7 @@ export function PreLoader() {
         aria-label='Loading'
       />
 
-      <div
-        ref={navRef}
-        className='pointer-events-none fixed inset-0 z-50 text-background'
-      >
+      <div className="pointer-events-none fixed inset-0 z-50 text-background">
         <CornerLabels
           loadingRef={loadingTextRef}
           scrollDownRef={scrollDownRef}

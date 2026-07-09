@@ -1,6 +1,7 @@
 import { PreLoader } from "@/components/preloader/PreLoader";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { ScrollSmootherProvider } from "@/components/ScrollSmootherProvider";
+import { HeroSection } from "@/components/HeroSection";
 
 export default function Home() {
   return (
@@ -9,14 +10,7 @@ export default function Home() {
 
       <ScrollSmootherProvider>
         <main>
-          <section
-            id="main"
-            className="flex min-h-screen items-center justify-center bg-background"
-          >
-            <p className="text-sm uppercase tracking-widest text-foreground/40">
-              Main Section
-            </p>
-          </section>
+          <HeroSection />
 
           <section
             id="section-2"

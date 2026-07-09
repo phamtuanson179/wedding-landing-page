@@ -13,8 +13,9 @@ const LOADING_DURATION = 2;
 const TRANSITION_DURATION = 2.2;
 const LOADING_OUT_DURATION = 0.7;
 const ARROW_IN_DURATION = 2;
-const POLYGON_LOADING_SCALE = 4;
-const POLYGON_END_SCALE = 2;
+// Base wrapper is end size (88px); scale down from 2→1 to avoid upscaling blur.
+const POLYGON_LOADING_SCALE = 2;
+const POLYGON_END_SCALE = 1;
 const NEXT_SECTION_ID = "section-2";
 
 function getPolygonCenterOffset(wrapper: HTMLElement) {
@@ -266,7 +267,7 @@ export function PreLoader() {
 
         <div
           ref={polygonWrapperRef}
-          className={`fixed bottom-16 right-16 size-11 ${
+          className={`fixed bottom-16 right-16 size-22 ${
             isInteractive ? "pointer-events-auto" : "pointer-events-none"
           }`}
         >

@@ -4,6 +4,10 @@ import { ScrollSmootherProvider } from "@/components/ScrollSmootherProvider";
 import { HeroSection } from "@/components/HeroSection";
 import { IntroductionSection } from "@/components/IntroductionSection";
 import { LoveStorySection } from "@/components/LoveStorySection";
+import { GallerySection } from "@/components/GallerySection";
+import { WeddingSection } from "@/components/WeddingSection";
+import { ThankYouSection } from "@/components/ThankYouSection";
+import { SectionDivider } from "@/components/SectionDivider";
 
 export default function Home() {
   return (
@@ -16,16 +20,19 @@ export default function Home() {
 
           <IntroductionSection />
 
+          <SectionDivider variant="beige-editorial" />
+
           <LoveStorySection />
 
-          <section
-            id="section-4"
-            className="flex min-h-screen items-center justify-center bg-background"
-          >
-            <p className="text-sm uppercase tracking-widest text-foreground/40">
-              Section 3
-            </p>
-          </section>
+          <SectionDivider variant="beige-editorial" />
+
+          <GallerySection />
+
+          <WeddingSection />
+
+          <SectionDivider variant="dark-to-primary" />
+
+          <ThankYouSection />
         </main>
       </ScrollSmootherProvider>
 

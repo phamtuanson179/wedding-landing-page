@@ -51,12 +51,14 @@ export function ScrollProgress() {
 
   return (
     <div
+      data-scroll-progress-track
       className="pointer-events-none fixed top-0 left-0 z-45 h-full w-[5px] overflow-hidden"
       aria-hidden="true"
     >
       <div
         ref={progressRef}
-        className="absolute inset-0 bg-primary"
+        data-scroll-progress
+        className="absolute inset-0 bg-primary transition-colors duration-500"
         style={{ transform: "translateY(-100%)" }}
       />
     </div>

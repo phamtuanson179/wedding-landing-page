@@ -20,6 +20,14 @@ export function CornerLabels() {
         <p className="absolute bottom-8 left-8 origin-bottom-left -rotate-90 text-xs font-bold lg:bottom-16 lg:left-16">
           Gia Lâm, Hà Nội
         </p>
+
+        <p
+          data-scroll-explore-hint
+          className="absolute bottom-8 left-[3.25rem] text-[10px] uppercase tracking-[0.28em] opacity-0 lg:bottom-16 lg:left-[4.75rem]"
+          aria-hidden="true"
+        >
+          Scroll to explore
+        </p>
       </div>
     </div>
   );

@@ -12,13 +12,13 @@ import {
   HERO_ENTRANCE_COMPLETE,
   dispatchHeroEntranceStart,
 } from "../heroEntrance";
-import { setCornerNavColor } from "../cornerNav";
+import { setCornerNavColor, ensureCornerChromeVisible, scrollToNextSection } from "../cornerNav";
+import { setPreloaderPolygonAnimating } from "../preloaderState";
 
 const LOADING_DURATION = 2;
 const TRANSITION_DURATION = 2.2;
 const POLYGON_END_SIZE = 88;
 const POLYGON_LOADING_SIZE = 176;
-const NEXT_SECTION_ID = "section-2";
 
 function getPolygonCenterOffset(wrapper: HTMLElement) {
   const rect = wrapper.getBoundingClientRect();
@@ -65,7 +65,7 @@ function setInitialState({
     strokeDashoffset: strokeLength,
     strokeOpacity: 1,
   });
-  gsap.set(arrowInner, { yPercent: 0, autoAlpha: 0 });
+  gsap.set(arrowInner, { autoAlpha: 0, visibility: "hidden" });
   gsap.set(arrowBounce, { y: 0 });
 
   return { strokeLength };
@@ -74,6 +74,7 @@ function setInitialState({
 function createReducedMotionTimeline(
   elements: PreloaderElements,
   onComplete: () => void,
+  onArrowReveal: () => void,
 ) {
   const { loader, polygonWrapper, polygon, arrowInner } = elements;
 
@@ -96,15 +97,28 @@ function createReducedMotionTimeline(
       0,
     )
     .set(polygon, { strokeOpacity: 0.1 }, 0.2)
-    .set(arrowInner, { autoAlpha: 1 }, 0.2);
+    .to(
+      arrowInner,
+      {
+        autoAlpha: 1,
+        visibility: "visible",
+        duration: 0.35,
+        ease: "power2.out",
+        onComplete: onArrowReveal,
+      },
+      0.4,
+    );
 }
 
 function createMainTimeline(
   elements: PreloaderElements,
   strokeLength: number,
   onComplete: () => void,
+  onArrowReveal: () => void,
 ) {
   const { polygon, loader, polygonWrapper, arrowInner } = elements;
+  const transitionStart = LOADING_DURATION;
+  const transitionEnd = LOADING_DURATION + TRANSITION_DURATION;
 
   return gsap
     .timeline({ onComplete })
@@ -125,7 +139,7 @@ function createMainTimeline(
         duration: TRANSITION_DURATION,
         ease: "power2.inOut",
       },
-      LOADING_DURATION,
+      transitionStart,
     )
     .to(
       polygonWrapper,
@@ -138,7 +152,7 @@ function createMainTimeline(
         duration: TRANSITION_DURATION,
         ease: "power2.inOut",
       },
-      LOADING_DURATION,
+      transitionStart,
     )
     .to(
       polygon,
@@ -147,12 +161,18 @@ function createMainTimeline(
         duration: TRANSITION_DURATION,
         ease: "power2.inOut",
       },
-      LOADING_DURATION,
+      transitionStart,
     )
     .to(
       arrowInner,
-      { autoAlpha: 1, duration: 0.6, ease: "power2.out" },
-      LOADING_DURATION + 0.25,
+      {
+        autoAlpha: 1,
+        visibility: "visible",
+        duration: 0.6,
+        ease: "power2.out",
+        onComplete: onArrowReveal,
+      },
+      transitionEnd,
     );
 }
 
@@ -174,6 +194,27 @@ function startArrowBounce(arrowBounce: HTMLDivElement) {
   });
 }
 
+function startScrollExplorePulse(scrollHint: HTMLElement) {
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+
+  if (prefersReducedMotion) {
+    gsap.set(scrollHint, { opacity: 0.55 });
+    return null;
+  }
+
+  gsap.set(scrollHint, { opacity: 0.32 });
+
+  return gsap.to(scrollHint, {
+    opacity: 0.82,
+    duration: 2.6,
+    ease: "sine.inOut",
+    repeat: -1,
+    yoyo: true,
+  });
+}
+
 export function PreLoader() {
   const [isInteractive, setIsInteractive] = useState(false);
   const loaderRef = useRef<HTMLElement>(null);
@@ -184,20 +225,7 @@ export function PreLoader() {
   const arrowBounceRef = useRef<HTMLDivElement>(null);
   const polygonHoverTweenRef = useRef<gsap.core.Tween | null>(null);
   const arrowBounceTweenRef = useRef<gsap.core.Tween | null>(null);
-
-  const scrollToNextSection = () => {
-    const smoother = ScrollSmoother.get();
-    const target = `#${NEXT_SECTION_ID}`;
-
-    if (smoother) {
-      smoother.scrollTo(target, true, "top top");
-      return;
-    }
-
-    document.getElementById(NEXT_SECTION_ID)?.scrollIntoView({
-      behavior: "smooth",
-    });
-  };
+  const scrollHintTweenRef = useRef<gsap.core.Tween | null>(null);
 
   const handlePolygonHoverStart = () => {
     const spin = polygonSpinRef.current;
@@ -254,6 +282,15 @@ export function PreLoader() {
       return;
     }
 
+    setCornerNavColor("loading");
+    ensureCornerChromeVisible();
+    gsap.set(elements.polygonWrapper, {
+      autoAlpha: 1,
+      visibility: "visible",
+    });
+
+    setPreloaderPolygonAnimating(true);
+
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const smoother = ScrollSmoother.get();
@@ -270,6 +307,7 @@ export function PreLoader() {
     ).matches;
 
     const finishPreloader = () => {
+      setPreloaderPolygonAnimating(false);
       gsap.set(elements.polygonWrapper, {
         width: POLYGON_END_SIZE,
         height: POLYGON_END_SIZE,
@@ -279,6 +317,7 @@ export function PreLoader() {
         autoAlpha: 1,
       });
       setCornerNavColor("hero");
+      ensureCornerChromeVisible();
       restoreScrollState();
       if (smoother) {
         ScrollTrigger.refresh();
@@ -289,20 +328,40 @@ export function PreLoader() {
       dispatchHeroEntranceStart();
     };
 
-    const revealChrome = () => {
+    const revealArrow = () => {
+      const arrowContainer = elements.arrowInner.parentElement;
+      if (arrowContainer) {
+        arrowContainer.style.overflow = "visible";
+      }
+
       arrowBounceTweenRef.current?.kill();
       arrowBounceTweenRef.current = startArrowBounce(elements.arrowBounce);
     };
 
+    const revealScrollHint = () => {
+      const scrollHint = document.querySelector<HTMLElement>(
+        "[data-scroll-explore-hint]",
+      );
+      if (scrollHint) {
+        scrollHintTweenRef.current?.kill();
+        scrollHintTweenRef.current = startScrollExplorePulse(scrollHint);
+      }
+    };
+
     const handleHeroEntranceComplete = () => {
-      revealChrome();
+      revealScrollHint();
     };
 
     window.addEventListener(HERO_ENTRANCE_COMPLETE, handleHeroEntranceComplete);
 
     const timeline = prefersReducedMotion
-      ? createReducedMotionTimeline(elements, finishPreloader)
-      : createMainTimeline(elements, strokeLength, finishPreloader);
+      ? createReducedMotionTimeline(elements, finishPreloader, revealArrow)
+      : createMainTimeline(
+          elements,
+          strokeLength,
+          finishPreloader,
+          revealArrow,
+        );
 
     return () => {
       window.removeEventListener(
@@ -311,6 +370,8 @@ export function PreLoader() {
       );
       polygonHoverTweenRef.current?.kill();
       arrowBounceTweenRef.current?.kill();
+      scrollHintTweenRef.current?.kill();
+      setPreloaderPolygonAnimating(false);
       timeline.kill();
       restoreScrollState();
     };
@@ -333,6 +394,7 @@ export function PreLoader() {
 
         <div
           ref={polygonWrapperRef}
+          data-scroll-polygon
           className={`fixed lg:bottom-16 lg:right-16 bottom-8 right-8 size-22 [backface-visibility:visible] ${
             isInteractive ? "pointer-events-auto" : "pointer-events-none"
           }`}
@@ -352,7 +414,7 @@ export function PreLoader() {
               <PolygonSvg ref={polygonRef} />
             </div>
 
-            <div className="pointer-events-none absolute left-1/2 top-1/2 h-[220%] w-8 -translate-x-1/2 -translate-y-1/2 overflow-visible">
+            <div className="pointer-events-none absolute left-1/2 top-1/2 h-[220%] w-8 -translate-x-1/2 -translate-y-1/2 overflow-hidden">
               <div ref={arrowInnerRef} className="h-full">
                 <div ref={arrowBounceRef} className="h-full">
                   <ScrollArrowSvg />

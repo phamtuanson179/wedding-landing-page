@@ -12,8 +12,9 @@ import {
 import {
   ensureDesktopCornerChromeVisible,
   getScroller,
+  isMobileViewport,
   setCornerNavColor,
-  setMobileCornerChromeVisible,
+  setMobileCornerNavVisible,
 } from "./cornerNav";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -193,13 +194,24 @@ export function HeroSection() {
       invalidateOnRefresh: true,
       onEnter: () => {
         setCornerNavColor("accent");
-        setMobileCornerChromeVisible(false);
+        setMobileCornerNavVisible(false);
       },
       onLeaveBack: () => {
         setCornerNavColor("hero");
-        setMobileCornerChromeVisible(true);
+        setMobileCornerNavVisible(true);
+      },
+      onRefresh: (self) => {
+        if (!isMobileViewport()) {
+          return;
+        }
+
+        setMobileCornerNavVisible(!self.isActive);
       },
     });
+
+    if (heroTrigger.isActive && isMobileViewport()) {
+      setMobileCornerNavVisible(false);
+    }
 
     media.add("(min-width: 768px)", () => {
       ensureDesktopCornerChromeVisible();
@@ -216,7 +228,7 @@ export function HeroSection() {
       heroTrigger.kill();
       media.revert();
       setCornerNavColor("hero");
-      setMobileCornerChromeVisible(true);
+      setMobileCornerNavVisible(true);
     };
   }, []);
 

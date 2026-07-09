@@ -186,7 +186,10 @@ function ProgressIndicator({
   progressRefs: React.RefObject<Array<HTMLSpanElement | null>>;
 }) {
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex items-center justify-center gap-4 text-xs uppercase tracking-[0.28em] md:bottom-10">
+    <div
+      data-story-progress
+      className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex items-center justify-center gap-4 text-xs uppercase tracking-[0.28em] md:bottom-10"
+    >
       {STORY_PANELS.map((panel, index) => (
         <span
           key={panel.index}

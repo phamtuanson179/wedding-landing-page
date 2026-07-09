@@ -79,62 +79,7 @@ const PANEL_ANIMATIONS: Record<StoryPanel["index"], PanelAnimationConfig> = {
 const CONTENT_INSET =
   "px-12 pt-14 pb-24 md:px-24 md:pt-20 md:pb-28 lg:px-32";
 
-function getScroller() {
-  return document.getElementById("smooth-wrapper") ? "#smooth-wrapper" : undefined;
-}
-
-function getCornerNav() {
-  return document.querySelector<HTMLElement>("[data-corner-nav]");
-}
-
-function isMobileViewport() {
-  return window.matchMedia("(max-width: 767px)").matches;
-}
-
-function hideMobileCornerChrome() {
-  const targets = document.querySelectorAll<HTMLElement>(
-    "[data-hero-corner-chrome]",
-  );
-
-  gsap.set(targets, {
-    autoAlpha: 0,
-    visibility: "hidden",
-    overwrite: true,
-  });
-}
-
-function setCornerNavStoryActive(active: boolean) {
-  if (isMobileViewport()) {
-    if (active) {
-      hideMobileCornerChrome();
-    }
-    return;
-  }
-
-  const cornerNav = getCornerNav();
-  if (!cornerNav) {
-    return;
-  }
-
-  cornerNav.classList.toggle("text-primary", active);
-  cornerNav.classList.toggle("text-background", !active);
-}
-
-function createCornerNavColorTrigger(section: HTMLElement) {
-  const scroller = getScroller();
-
-  return ScrollTrigger.create({
-    trigger: section,
-    start: "top top",
-    end: "bottom top",
-    scroller,
-    invalidateOnRefresh: true,
-    onEnter: () => setCornerNavStoryActive(true),
-    onLeave: () => setCornerNavStoryActive(false),
-    onEnterBack: () => setCornerNavStoryActive(true),
-    onLeaveBack: () => setCornerNavStoryActive(false),
-  });
-}
+import { getScroller } from "./cornerNav";
 
 function StoryHeader() {
   return (
@@ -472,12 +417,7 @@ export function LoveStorySection() {
     ).matches;
 
     if (prefersReducedMotion || !pin || !track || panels.length === 0) {
-      const cornerNavTrigger = createCornerNavColorTrigger(section);
-
-      return () => {
-        cornerNavTrigger.kill();
-        setCornerNavStoryActive(false);
-      };
+      return;
     }
 
     const scroller = getScroller();
@@ -506,10 +446,6 @@ export function LoveStorySection() {
         scroller,
         anticipatePin: 1,
         invalidateOnRefresh: true,
-        onEnter: () => setCornerNavStoryActive(true),
-        onLeave: () => setCornerNavStoryActive(false),
-        onEnterBack: () => setCornerNavStoryActive(true),
-        onLeaveBack: () => setCornerNavStoryActive(false),
         onUpdate: (self) => {
           const activeIndex = Math.min(
             Math.round(self.progress * (panels.length - 1)),
@@ -556,13 +492,12 @@ export function LoveStorySection() {
       window.removeEventListener("resize", refresh);
       horizontalTween.kill();
       scrollTriggers.forEach((trigger) => trigger.kill());
-      setCornerNavStoryActive(false);
     };
   }, [reducedMotion]);
 
   if (reducedMotion) {
     return (
-      <section id="section-2" className="bg-background text-foreground">
+      <section id="section-3" className="bg-background text-foreground">
         <div className={`${CONTENT_INSET} py-20`}>
           <StoryHeader />
         </div>
@@ -579,7 +514,7 @@ export function LoveStorySection() {
   }
 
   return (
-    <section id="section-2" ref={sectionRef} className="relative bg-background">
+    <section id="section-3" ref={sectionRef} className="relative bg-background">
       <div
         ref={pinRef}
         className="relative h-screen w-full overflow-hidden bg-background text-foreground"

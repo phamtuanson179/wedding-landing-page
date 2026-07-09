@@ -9,42 +9,14 @@ import {
   HERO_ENTRANCE_START,
   dispatchHeroEntranceComplete,
 } from "./heroEntrance";
+import {
+  ensureDesktopCornerChromeVisible,
+  getScroller,
+  setCornerNavColor,
+  setMobileCornerChromeVisible,
+} from "./cornerNav";
 
 gsap.registerPlugin(ScrollTrigger);
-
-function getScroller() {
-  return document.getElementById("smooth-wrapper") ? "#smooth-wrapper" : undefined;
-}
-
-function getMobileCornerTargets() {
-  return Array.from(
-    document.querySelectorAll<HTMLElement>("[data-hero-corner-chrome]"),
-  );
-}
-
-function setMobileCornerLabelsVisible(visible: boolean) {
-  const targets = getMobileCornerTargets();
-  if (targets.length === 0) {
-    return;
-  }
-
-  if (visible) {
-    gsap.to(targets, {
-      autoAlpha: 1,
-      visibility: "visible",
-      duration: 0.35,
-      ease: "power2.out",
-      overwrite: true,
-    });
-    return;
-  }
-
-  gsap.set(targets, {
-    autoAlpha: 0,
-    visibility: "hidden",
-    overwrite: true,
-  });
-}
 
 const HERO_IMAGES = [
   {
@@ -214,24 +186,37 @@ export function HeroSection() {
     const scroller = getScroller();
     const media = gsap.matchMedia();
 
-    media.add("(max-width: 767px)", () => {
-      const trigger = ScrollTrigger.create({
-        trigger: hero,
-        start: "bottom top",
-        scroller,
-        invalidateOnRefresh: true,
-        onEnter: () => setMobileCornerLabelsVisible(false),
-        onLeaveBack: () => setMobileCornerLabelsVisible(true),
-      });
+    const heroTrigger = ScrollTrigger.create({
+      trigger: hero,
+      start: "bottom top",
+      scroller,
+      invalidateOnRefresh: true,
+      onEnter: () => {
+        setCornerNavColor("accent");
+        setMobileCornerChromeVisible(false);
+      },
+      onLeaveBack: () => {
+        setCornerNavColor("hero");
+        setMobileCornerChromeVisible(true);
+      },
+    });
+
+    media.add("(min-width: 768px)", () => {
+      ensureDesktopCornerChromeVisible();
+
+      const handleResize = () => ensureDesktopCornerChromeVisible();
+      window.addEventListener("resize", handleResize);
 
       return () => {
-        trigger.kill();
-        setMobileCornerLabelsVisible(true);
+        window.removeEventListener("resize", handleResize);
       };
     });
 
     return () => {
+      heroTrigger.kill();
       media.revert();
+      setCornerNavColor("hero");
+      setMobileCornerChromeVisible(true);
     };
   }, []);
 

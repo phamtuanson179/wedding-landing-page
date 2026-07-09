@@ -12,6 +12,7 @@ import {
   HERO_ENTRANCE_COMPLETE,
   dispatchHeroEntranceStart,
 } from "../heroEntrance";
+import { setCornerNavColor } from "../cornerNav";
 
 const LOADING_DURATION = 2;
 const TRANSITION_DURATION = 2.2;
@@ -277,6 +278,7 @@ export function PreLoader() {
         scale: 1,
         autoAlpha: 1,
       });
+      setCornerNavColor("hero");
       restoreScrollState();
       if (smoother) {
         ScrollTrigger.refresh();

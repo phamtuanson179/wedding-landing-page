@@ -2,20 +2,71 @@
 
 import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Image from "next/image";
+import {
+  HERO_ENTRANCE_COMPLETE,
+  HERO_ENTRANCE_START,
+  dispatchHeroEntranceComplete,
+} from "./heroEntrance";
+
+gsap.registerPlugin(ScrollTrigger);
+
+function getScroller() {
+  return document.getElementById("smooth-wrapper") ? "#smooth-wrapper" : undefined;
+}
+
+function getMobileCornerTargets() {
+  return Array.from(
+    document.querySelectorAll<HTMLElement>("[data-hero-corner-chrome]"),
+  );
+}
+
+function setMobileCornerLabelsVisible(visible: boolean) {
+  const targets = getMobileCornerTargets();
+  if (targets.length === 0) {
+    return;
+  }
+
+  if (visible) {
+    gsap.to(targets, {
+      autoAlpha: 1,
+      visibility: "visible",
+      duration: 0.35,
+      ease: "power2.out",
+      overwrite: true,
+    });
+    return;
+  }
+
+  gsap.set(targets, {
+    autoAlpha: 0,
+    visibility: "hidden",
+    overwrite: true,
+  });
+}
 
 const HERO_IMAGES = [
-  "https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=2200&q=80",
-  "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=2200&q=80",
-  "https://images.unsplash.com/photo-1606216794074-735e91aa2c92?auto=format&fit=crop&w=2200&q=80",
-];
+  {
+    src: "https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=2200&q=80",
+    position: "object-[center_42%] md:object-center",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=2200&q=80",
+    position: "object-[center_38%] md:object-center",
+  },
+  {
+    src: "https://images.unsplash.com/photo-1606216794074-735e91aa2c92?auto=format&fit=crop&w=2200&q=80",
+    position: "object-[center_40%] md:object-[center_45%]",
+  },
+] as const;
 
 const SLIDE_DURATION = 5;
 const CROSSFADE_DURATION = 0.9;
 
 const preloadedImages =
   typeof window !== "undefined"
-    ? HERO_IMAGES.map((src) => {
+    ? HERO_IMAGES.map(({ src }) => {
         const image = new window.Image();
         image.src = src;
         return image;
@@ -45,8 +96,144 @@ function restartKenBurns(media: HTMLElement) {
   media.classList.add("is-active");
 }
 
+function runHeroEntrance(
+  elements: {
+    eyebrow: HTMLElement;
+    son: HTMLElement;
+    amp: HTMLElement;
+    linh: HTMLElement;
+  },
+  prefersReducedMotion: boolean,
+) {
+  const { eyebrow, son, amp, linh } = elements;
+
+  if (prefersReducedMotion) {
+    gsap.set([eyebrow, son, amp, linh], {
+      autoAlpha: 1,
+      x: 0,
+      y: 0,
+      letterSpacing: "0em",
+    });
+    dispatchHeroEntranceComplete();
+    return;
+  }
+
+  gsap
+    .timeline({
+      onComplete: () => dispatchHeroEntranceComplete(),
+    })
+    .fromTo(
+      eyebrow,
+      { autoAlpha: 0, y: 20 },
+      { autoAlpha: 1, y: 0, duration: 0.85, ease: "power2.out" },
+      0,
+    )
+    .fromTo(
+      son,
+      { autoAlpha: 0, x: -48, letterSpacing: "0.14em" },
+      {
+        autoAlpha: 1,
+        x: 0,
+        letterSpacing: "-0.02em",
+        duration: 1.1,
+        ease: "power3.out",
+      },
+      0.3,
+    )
+    .fromTo(
+      linh,
+      { autoAlpha: 0, x: 48, letterSpacing: "0.14em" },
+      {
+        autoAlpha: 1,
+        x: 0,
+        letterSpacing: "-0.02em",
+        duration: 1.1,
+        ease: "power3.out",
+      },
+      0.3,
+    )
+    .fromTo(
+      amp,
+      { autoAlpha: 0, y: 12, scale: 0.92 },
+      { autoAlpha: 1, y: 0, scale: 1, duration: 0.75, ease: "power2.out" },
+      0.55,
+    );
+}
+
 export function HeroSection() {
   const slideRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const eyebrowRef = useRef<HTMLSpanElement>(null);
+  const sonRef = useRef<HTMLSpanElement>(null);
+  const ampRef = useRef<HTMLSpanElement>(null);
+  const linhRef = useRef<HTMLSpanElement>(null);
+  const entranceStartedRef = useRef(false);
+
+  useLayoutEffect(() => {
+    const eyebrow = eyebrowRef.current;
+    const son = sonRef.current;
+    const amp = ampRef.current;
+    const linh = linhRef.current;
+
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (eyebrow && son && amp && linh) {
+      if (prefersReducedMotion) {
+        gsap.set([eyebrow, son, amp, linh], { autoAlpha: 1, x: 0, y: 0 });
+      } else {
+        gsap.set(eyebrow, { autoAlpha: 0, y: 20 });
+        gsap.set(son, { autoAlpha: 0, x: -48, letterSpacing: "0.14em" });
+        gsap.set(linh, { autoAlpha: 0, x: 48, letterSpacing: "0.14em" });
+        gsap.set(amp, { autoAlpha: 0, y: 12, scale: 0.92 });
+      }
+    }
+
+    const handleEntranceStart = () => {
+      if (entranceStartedRef.current || !eyebrow || !son || !amp || !linh) {
+        return;
+      }
+
+      entranceStartedRef.current = true;
+      runHeroEntrance({ eyebrow, son, amp, linh }, prefersReducedMotion);
+    };
+
+    window.addEventListener(HERO_ENTRANCE_START, handleEntranceStart);
+
+    return () => {
+      window.removeEventListener(HERO_ENTRANCE_START, handleEntranceStart);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    const hero = document.getElementById("main");
+    if (!hero) {
+      return;
+    }
+
+    const scroller = getScroller();
+    const media = gsap.matchMedia();
+
+    media.add("(max-width: 767px)", () => {
+      const trigger = ScrollTrigger.create({
+        trigger: hero,
+        start: "bottom top",
+        scroller,
+        invalidateOnRefresh: true,
+        onEnter: () => setMobileCornerLabelsVisible(false),
+        onLeaveBack: () => setMobileCornerLabelsVisible(true),
+      });
+
+      return () => {
+        trigger.kill();
+        setMobileCornerLabelsVisible(true);
+      };
+    });
+
+    return () => {
+      media.revert();
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const slides = slideRefs.current.filter(Boolean) as HTMLDivElement[];
@@ -144,11 +331,11 @@ export function HeroSection() {
 
   return (
     <section
-      id='main'
-      className='relative flex min-h-screen items-center justify-center overflow-hidden bg-[#2a2520]'
+      id="main"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#2a2520]"
     >
-      <div className='absolute inset-0 overflow-hidden'>
-        {HERO_IMAGES.map((src, index) => (
+      <div className="absolute inset-0 overflow-hidden">
+        {HERO_IMAGES.map(({ src, position }, index) => (
           <div
             key={src}
             ref={(el) => {
@@ -164,7 +351,7 @@ export function HeroSection() {
               fill
               sizes="100vw"
               priority={index === 0}
-              className="hero-slide-media object-cover will-change-transform"
+              className={`hero-slide-media object-cover will-change-transform ${position}`}
               draggable={false}
             />
           </div>
@@ -172,22 +359,34 @@ export function HeroSection() {
       </div>
 
       <div
-        className='pointer-events-none absolute inset-0 z-1 bg-black/55'
-        aria-hidden='true'
+        className="pointer-events-none absolute inset-0 z-1 bg-black/55"
+        aria-hidden="true"
       />
 
-      <div className='relative z-10 flex w-full items-center justify-center px-6 md:px-12'>
-        <h1 className='hero-title text-left font-display text-background'>
-          <span className='mb-4 block text-[clamp(0.7rem,1.4vw,0.95rem)] font-normal uppercase tracking-[0.32em] text-background/75'>
+      <div className="relative z-10 flex w-full items-center justify-center px-6 md:px-12">
+        <h1 className="hero-title text-left font-display text-background">
+          <span
+            ref={eyebrowRef}
+            className="mb-5 block text-[clamp(0.7rem,1.4vw,0.95rem)] font-normal uppercase tracking-[0.32em] text-background/80"
+          >
             Thiệp cưới
           </span>
-          <span className='block text-[clamp(3.4rem,11.5vw,10.5rem)] font-normal leading-[0.82] tracking-[-0.02em]'>
+          <span
+            ref={sonRef}
+            className="block text-[clamp(3.4rem,11.5vw,10.5rem)] font-normal leading-[0.88] tracking-[-0.02em]"
+          >
             Sơn
           </span>
-          <span className='block text-[clamp(1.4rem,3.2vw,2.8rem)] font-normal italic leading-20 tracking-[0.02em] text-background/85'>
+          <span
+            ref={ampRef}
+            className="hero-amp block translate-x-2 text-[clamp(0.95rem,2.2vw,1.85rem)] font-normal italic leading-[1.6] tracking-[0.06em] text-background/80 md:translate-x-4"
+          >
             &
           </span>
-          <span className='block text-[clamp(3.4rem,11.5vw,10.5rem)] font-normal leading-[0.82] tracking-[-0.02em]'>
+          <span
+            ref={linhRef}
+            className="block text-[clamp(3.4rem,11.5vw,10.5rem)] font-normal leading-[0.88] tracking-[-0.02em]"
+          >
             Linh
           </span>
         </h1>

@@ -8,22 +8,23 @@ import { ScrollArrowSvg } from "./ScrollArrowSvg";
 
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import {
+  HERO_ENTRANCE_COMPLETE,
+  dispatchHeroEntranceStart,
+} from "../heroEntrance";
 
 const LOADING_DURATION = 2;
 const TRANSITION_DURATION = 2.2;
-const LOADING_OUT_DURATION = 0.7;
-const ARROW_IN_DURATION = 2;
-// Base wrapper is end size (88px); scale down from 2→1 to avoid upscaling blur.
-const POLYGON_LOADING_SCALE = 2;
-const POLYGON_END_SCALE = 1;
+const POLYGON_END_SIZE = 88;
+const POLYGON_LOADING_SIZE = 176;
 const NEXT_SECTION_ID = "section-2";
 
 function getPolygonCenterOffset(wrapper: HTMLElement) {
   const rect = wrapper.getBoundingClientRect();
 
   return {
-    x: -rect.left + window.innerWidth / 2 - rect.width / 2,
-    y: -rect.top + window.innerHeight / 2 - rect.height / 2,
+    x: Math.round(-rect.left + window.innerWidth / 2 - rect.width / 2),
+    y: Math.round(-rect.top + window.innerHeight / 2 - rect.height / 2),
   };
 }
 
@@ -32,8 +33,7 @@ type PreloaderElements = {
   polygonWrapper: HTMLDivElement;
   polygon: SVGPolygonElement;
   arrowInner: HTMLDivElement;
-  loadingText: HTMLSpanElement | null;
-  scrollDown: HTMLSpanElement | null;
+  arrowBounce: HTMLDivElement;
 };
 
 function setInitialState({
@@ -41,9 +41,16 @@ function setInitialState({
   polygonWrapper,
   polygon,
   arrowInner,
-  loadingText,
-  scrollDown,
+  arrowBounce,
 }: PreloaderElements) {
+  gsap.set(polygonWrapper, {
+    width: POLYGON_LOADING_SIZE,
+    height: POLYGON_LOADING_SIZE,
+    scale: 1,
+    transformOrigin: "center center",
+    force3D: false,
+  });
+
   const centerOffset = getPolygonCenterOffset(polygonWrapper);
   const strokeLength = polygon.getTotalLength();
 
@@ -51,22 +58,14 @@ function setInitialState({
   gsap.set(polygonWrapper, {
     x: centerOffset.x,
     y: centerOffset.y,
-    scale: POLYGON_LOADING_SCALE,
-    transformOrigin: "center center",
   });
   gsap.set(polygon, {
     strokeDasharray: strokeLength,
     strokeDashoffset: strokeLength,
     strokeOpacity: 1,
   });
-  gsap.set(arrowInner, { yPercent: -120 });
-
-  if (loadingText) {
-    gsap.set(loadingText, { yPercent: 0 });
-  }
-  if (scrollDown) {
-    gsap.set(scrollDown, { yPercent: 100 });
-  }
+  gsap.set(arrowInner, { yPercent: 0, autoAlpha: 0 });
+  gsap.set(arrowBounce, { y: 0 });
 
   return { strokeLength };
 }
@@ -82,11 +81,21 @@ function createReducedMotionTimeline(
     .to(loader, { yPercent: -100, duration: 0.4, ease: "power2.inOut" })
     .to(
       polygonWrapper,
-      { x: 0, y: 0, scale: POLYGON_END_SCALE, duration: 0.4 },
+      { x: 0, y: 0, scale: 1, duration: 0.4, ease: "power2.inOut" },
+      0,
+    )
+    .to(
+      polygonWrapper,
+      {
+        width: POLYGON_END_SIZE,
+        height: POLYGON_END_SIZE,
+        duration: 0.4,
+        ease: "power2.inOut",
+      },
       0,
     )
     .set(polygon, { strokeOpacity: 0.1 }, 0.2)
-    .set(arrowInner, { yPercent: 0 }, 0.2);
+    .set(arrowInner, { autoAlpha: 1 }, 0.2);
 }
 
 function createMainTimeline(
@@ -94,14 +103,7 @@ function createMainTimeline(
   strokeLength: number,
   onComplete: () => void,
 ) {
-  const {
-    polygon,
-    loadingText,
-    scrollDown,
-    loader,
-    polygonWrapper,
-    arrowInner,
-  } = elements;
+  const { polygon, loader, polygonWrapper, arrowInner } = elements;
 
   return gsap
     .timeline({ onComplete })
@@ -114,24 +116,6 @@ function createMainTimeline(
         ease: "none",
       },
       0,
-    )
-    .to(
-      loadingText,
-      {
-        yPercent: -110,
-        duration: LOADING_OUT_DURATION,
-        ease: "power3.inOut",
-      },
-      LOADING_DURATION,
-    )
-    .to(
-      scrollDown,
-      {
-        yPercent: 0,
-        duration: TRANSITION_DURATION * 0.7,
-        ease: "power2.out",
-      },
-      LOADING_DURATION + 0.1,
     )
     .to(
       loader,
@@ -147,7 +131,9 @@ function createMainTimeline(
       {
         x: 0,
         y: 0,
-        scale: POLYGON_END_SCALE,
+        width: POLYGON_END_SIZE,
+        height: POLYGON_END_SIZE,
+        scale: 1,
         duration: TRANSITION_DURATION,
         ease: "power2.inOut",
       },
@@ -164,23 +150,39 @@ function createMainTimeline(
     )
     .to(
       arrowInner,
-      {
-        yPercent: 0,
-        duration: ARROW_IN_DURATION,
-        ease: "power2.out",
-      },
-      LOADING_DURATION + 0.2,
+      { autoAlpha: 1, duration: 0.6, ease: "power2.out" },
+      LOADING_DURATION + 0.25,
     );
+}
+
+function startArrowBounce(arrowBounce: HTMLDivElement) {
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+
+  if (prefersReducedMotion) {
+    return null;
+  }
+
+  return gsap.to(arrowBounce, {
+    y: 8,
+    duration: 1.2,
+    ease: "power1.inOut",
+    repeat: -1,
+    yoyo: true,
+  });
 }
 
 export function PreLoader() {
   const [isInteractive, setIsInteractive] = useState(false);
   const loaderRef = useRef<HTMLElement>(null);
   const polygonWrapperRef = useRef<HTMLDivElement>(null);
+  const polygonSpinRef = useRef<HTMLDivElement>(null);
   const polygonRef = useRef<SVGPolygonElement>(null);
   const arrowInnerRef = useRef<HTMLDivElement>(null);
-  const loadingTextRef = useRef<HTMLSpanElement>(null);
-  const scrollDownRef = useRef<HTMLSpanElement>(null);
+  const arrowBounceRef = useRef<HTMLDivElement>(null);
+  const polygonHoverTweenRef = useRef<gsap.core.Tween | null>(null);
+  const arrowBounceTweenRef = useRef<gsap.core.Tween | null>(null);
 
   const scrollToNextSection = () => {
     const smoother = ScrollSmoother.get();
@@ -196,21 +198,57 @@ export function PreLoader() {
     });
   };
 
+  const handlePolygonHoverStart = () => {
+    const spin = polygonSpinRef.current;
+    if (!spin) {
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    polygonHoverTweenRef.current?.kill();
+    polygonHoverTweenRef.current = gsap.to(spin, {
+      rotation: prefersReducedMotion ? 12 : 360,
+      duration: prefersReducedMotion ? 0.45 : 14,
+      ease: prefersReducedMotion ? "power2.out" : "none",
+      repeat: prefersReducedMotion ? 0 : -1,
+      transformOrigin: "50% 50%",
+      overwrite: true,
+    });
+  };
+
+  const handlePolygonHoverEnd = () => {
+    const spin = polygonSpinRef.current;
+    if (!spin) {
+      return;
+    }
+
+    polygonHoverTweenRef.current?.kill();
+    polygonHoverTweenRef.current = gsap.to(spin, {
+      rotation: 0,
+      duration: 0.7,
+      ease: "power2.out",
+      overwrite: true,
+    });
+  };
+
   useLayoutEffect(() => {
     const elements: PreloaderElements = {
       loader: loaderRef.current as HTMLElement,
       polygonWrapper: polygonWrapperRef.current as HTMLDivElement,
       polygon: polygonRef.current as SVGPolygonElement,
       arrowInner: arrowInnerRef.current as HTMLDivElement,
-      loadingText: loadingTextRef.current,
-      scrollDown: scrollDownRef.current,
+      arrowBounce: arrowBounceRef.current as HTMLDivElement,
     };
 
     if (
       !elements.loader ||
       !elements.polygonWrapper ||
       !elements.polygon ||
-      !elements.arrowInner
+      !elements.arrowInner ||
+      !elements.arrowBounce
     ) {
       return;
     }
@@ -231,6 +269,14 @@ export function PreLoader() {
     ).matches;
 
     const finishPreloader = () => {
+      gsap.set(elements.polygonWrapper, {
+        width: POLYGON_END_SIZE,
+        height: POLYGON_END_SIZE,
+        x: 0,
+        y: 0,
+        scale: 1,
+        autoAlpha: 1,
+      });
       restoreScrollState();
       if (smoother) {
         ScrollTrigger.refresh();
@@ -238,13 +284,31 @@ export function PreLoader() {
       elements.loader.setAttribute("aria-hidden", "true");
       elements.loader.style.pointerEvents = "none";
       setIsInteractive(true);
+      dispatchHeroEntranceStart();
     };
+
+    const revealChrome = () => {
+      arrowBounceTweenRef.current?.kill();
+      arrowBounceTweenRef.current = startArrowBounce(elements.arrowBounce);
+    };
+
+    const handleHeroEntranceComplete = () => {
+      revealChrome();
+    };
+
+    window.addEventListener(HERO_ENTRANCE_COMPLETE, handleHeroEntranceComplete);
 
     const timeline = prefersReducedMotion
       ? createReducedMotionTimeline(elements, finishPreloader)
       : createMainTimeline(elements, strokeLength, finishPreloader);
 
     return () => {
+      window.removeEventListener(
+        HERO_ENTRANCE_COMPLETE,
+        handleHeroEntranceComplete,
+      );
+      polygonHoverTweenRef.current?.kill();
+      arrowBounceTweenRef.current?.kill();
       timeline.kill();
       restoreScrollState();
     };
@@ -259,15 +323,15 @@ export function PreLoader() {
         aria-label='Loading'
       />
 
-      <div className="pointer-events-none fixed inset-0 z-50 text-background">
-        <CornerLabels
-          loadingRef={loadingTextRef}
-          scrollDownRef={scrollDownRef}
-        />
+      <div
+        data-corner-nav
+        className="pointer-events-none fixed inset-0 z-50 text-background transition-colors duration-500"
+      >
+        <CornerLabels />
 
         <div
           ref={polygonWrapperRef}
-          className={`fixed bottom-16 right-16 size-22 ${
+          className={`fixed lg:bottom-16 lg:right-16 bottom-8 right-8 size-22 [backface-visibility:visible] ${
             isInteractive ? "pointer-events-auto" : "pointer-events-none"
           }`}
         >
@@ -276,13 +340,21 @@ export function PreLoader() {
             aria-label='Scroll to next section'
             disabled={!isInteractive}
             onClick={scrollToNextSection}
-            className='relative size-full cursor-pointer bg-transparent disabled:cursor-default'
+            onMouseEnter={handlePolygonHoverStart}
+            onMouseLeave={handlePolygonHoverEnd}
+            onFocus={handlePolygonHoverStart}
+            onBlur={handlePolygonHoverEnd}
+            className='group relative size-full cursor-pointer bg-transparent disabled:cursor-default'
           >
-            <PolygonSvg ref={polygonRef} />
+            <div ref={polygonSpinRef} className="size-full">
+              <PolygonSvg ref={polygonRef} />
+            </div>
 
-            <div className='pointer-events-none absolute left-1/2 top-1/2 h-[220%] w-8 -translate-x-1/2 -translate-y-1/2 overflow-visible'>
-              <div ref={arrowInnerRef} className='h-full'>
-                <ScrollArrowSvg />
+            <div className="pointer-events-none absolute left-1/2 top-1/2 h-[220%] w-8 -translate-x-1/2 -translate-y-1/2 overflow-visible">
+              <div ref={arrowInnerRef} className="h-full">
+                <div ref={arrowBounceRef} className="h-full">
+                  <ScrollArrowSvg />
+                </div>
               </div>
             </div>
           </button>

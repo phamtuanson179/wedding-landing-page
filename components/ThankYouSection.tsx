@@ -453,7 +453,7 @@ export function ThankYouSection() {
       className='relative flex h-screen min-h-screen flex-col overflow-hidden bg-primary text-background'
     >
       <div
-        className='pointer-events-none absolute inset-0 bg-linear-to-b from-black/12 via-transparent to-black/24'
+        className='pointer-events-none absolute inset-0 bg-linear-to-b from-transparent to-black/20'
         aria-hidden
       />
 

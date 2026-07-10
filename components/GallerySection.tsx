@@ -16,17 +16,15 @@ import { whenPreloaderComplete } from "./preloaderState";
 import {
   GALLERY_GAP,
   GALLERY_ROWS,
-  getLandscapeStaggerOffset,
   getLoopPhotos,
   getPhotoSize,
   getRowHeight,
-  PORTRAIT_ROW_HEIGHT_RATIO,
   type FilmstripPhoto,
 } from "./gallery/filmstripPhotos";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const SSR_PORTRAIT_ROW_HEIGHT = 240;
+const SSR_ROW_HEIGHT = 200;
 const HOVER_SHADOW = "0 24px 48px -12px rgba(26, 18, 12, 0.14)";
 
 function resetPhotoHover(item: HTMLElement) {
@@ -110,17 +108,11 @@ function GalleryPhoto({
 
 function GalleryFallback({
   sectionRef,
-  portraitRowHeight,
-  landscapeRowHeight,
-  staggerOffset,
+  rowHeight,
 }: {
   sectionRef: React.RefObject<HTMLElement | null>;
-  portraitRowHeight: number;
-  landscapeRowHeight: number;
-  staggerOffset: number;
+  rowHeight: number;
 }) {
-  const [row1, row2] = GALLERY_ROWS;
-
   return (
     <section
       id="section-4"
@@ -133,30 +125,22 @@ function GalleryFallback({
           Gallery
         </p>
         <h2 className="mt-3 font-display text-4xl tracking-[0.08em] md:text-5xl">
-          Kỷ niệm
+          Album cưới
         </h2>
       </header>
       <div className="space-y-10 overflow-x-auto">
-        <div className="flex" style={{ gap: GALLERY_GAP }}>
-          {row1.photos.map((photo) => (
-            <GalleryPhoto
-              key={photo.id}
-              photo={photo}
-              rowHeight={portraitRowHeight}
-              onSelect={() => {}}
-            />
-          ))}
-        </div>
-        <div className="flex" style={{ gap: GALLERY_GAP, paddingLeft: staggerOffset }}>
-          {row2.photos.map((photo) => (
-            <GalleryPhoto
-              key={photo.id}
-              photo={photo}
-              rowHeight={landscapeRowHeight}
-              onSelect={() => {}}
-            />
-          ))}
-        </div>
+        {GALLERY_ROWS.map((row) => (
+          <div key={row.id} className="flex" style={{ gap: GALLERY_GAP }}>
+            {row.photos.map((photo) => (
+              <GalleryPhoto
+                key={photo.id}
+                photo={photo}
+                rowHeight={rowHeight}
+                onSelect={() => {}}
+              />
+            ))}
+          </div>
+        ))}
       </div>
     </section>
   );
@@ -210,28 +194,17 @@ export function GallerySection() {
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   });
 
-  const [portraitRowHeight, setPortraitRowHeight] = useState(SSR_PORTRAIT_ROW_HEIGHT);
-  const [landscapeRowHeight, setLandscapeRowHeight] = useState(
-    Math.round(SSR_PORTRAIT_ROW_HEIGHT * 0.26 / PORTRAIT_ROW_HEIGHT_RATIO),
-  );
-  const [staggerOffset, setStaggerOffset] = useState(130);
+  const [rowHeight, setRowHeight] = useState(SSR_ROW_HEIGHT);
   const [isReady, setIsReady] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<FilmstripPhoto | null>(null);
 
   useLayoutEffect(() => {
-    const updateLayout = () => {
-      const portraitHeight = getRowHeight(PORTRAIT_ROW_HEIGHT_RATIO);
-      const landscapeHeight = getRowHeight(GALLERY_ROWS[1].rowHeightRatio);
-      setPortraitRowHeight(portraitHeight);
-      setLandscapeRowHeight(landscapeHeight);
-      setStaggerOffset(getLandscapeStaggerOffset(portraitHeight));
-    };
-
-    updateLayout();
+    setRowHeight(getRowHeight());
     setIsReady(true);
 
-    window.addEventListener("resize", updateLayout);
-    return () => window.removeEventListener("resize", updateLayout);
+    const updateRowHeight = () => setRowHeight(getRowHeight());
+    window.addEventListener("resize", updateRowHeight);
+    return () => window.removeEventListener("resize", updateRowHeight);
   }, []);
 
   useLayoutEffect(() => {
@@ -304,11 +277,10 @@ export function GallerySection() {
         return;
       }
 
-      const row1Items = Array.from(
-        tracks[0].querySelectorAll<HTMLElement>("[data-gallery-photo-item]"),
-      );
-      const row2Items = Array.from(
-        tracks[1].querySelectorAll<HTMLElement>("[data-gallery-photo-item]"),
+      const rowItems = tracks.map((track) =>
+        Array.from(
+          track.querySelectorAll<HTMLElement>("[data-gallery-photo-item]"),
+        ),
       );
 
       const getPinDistance = () => {
@@ -330,12 +302,15 @@ export function GallerySection() {
         syncGalleryChrome(true);
       }
 
-      const topTrack = tracks[0];
-      const bottomTrack = tracks[1];
-      const bottomDistance = () => getTrackDistance(bottomTrack);
+      GALLERY_ROWS.forEach((row, index) => {
+        const track = tracks[index];
+        const distance = () => getTrackDistance(track);
 
-      gsap.set(bottomTrack, {
-        x: () => -bottomDistance() * 0.18,
+        if (row.direction === "right") {
+          gsap.set(track, { x: () => -distance() * 0.22 });
+        } else {
+          gsap.set(track, { x: 0 });
+        }
       });
 
       scrollTimeline = gsap.timeline({
@@ -350,20 +325,18 @@ export function GallerySection() {
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             const velocity = self.getVelocity();
-            const skewTop = gsap.utils.clamp(-4.5, 4.5, velocity * 0.008);
-            const skewBottom = gsap.utils.clamp(-4.5, 4.5, -velocity * 0.008);
+            const skewAmount = gsap.utils.clamp(-4.5, 4.5, velocity * 0.008);
 
-            gsap.to(row1Items, {
-              skewX: skewTop,
-              duration: 0.35,
-              ease: "power2.out",
-              overwrite: "auto",
-            });
-            gsap.to(row2Items, {
-              skewX: skewBottom,
-              duration: 0.35,
-              ease: "power2.out",
-              overwrite: "auto",
+            GALLERY_ROWS.forEach((row, index) => {
+              const skew =
+                row.direction === "left" ? skewAmount : -skewAmount;
+
+              gsap.to(rowItems[index], {
+                skewX: skew,
+                duration: 0.35,
+                ease: "power2.out",
+                overwrite: "auto",
+              });
             });
 
             if (skewResetTimer) {
@@ -371,7 +344,7 @@ export function GallerySection() {
             }
 
             skewResetTimer = window.setTimeout(() => {
-              gsap.to([...row1Items, ...row2Items], {
+              gsap.to(rowItems.flat(), {
                 skewX: 0,
                 duration: 0.65,
                 ease: "elastic.out(1, 0.45)",
@@ -382,24 +355,29 @@ export function GallerySection() {
         },
       });
 
-      scrollTimeline.to(
-        topTrack,
-        {
-          x: () => -getTrackDistance(topTrack),
-          ease: "none",
-          duration: 1,
-        },
-        0,
-      );
-      scrollTimeline.to(
-        bottomTrack,
-        {
-          x: () => bottomDistance() * GALLERY_ROWS[1].speed,
-          ease: "none",
-          duration: 1,
-        },
-        0,
-      );
+      GALLERY_ROWS.forEach((row, index) => {
+        const track = tracks[index];
+        const distance = () => getTrackDistance(track);
+
+        if (row.direction === "left") {
+          scrollTimeline?.to(
+            track,
+            { x: () => -distance(), ease: "none", duration: 1 },
+            0,
+          );
+          return;
+        }
+
+        scrollTimeline?.to(
+          track,
+          {
+            x: () => distance() * row.speed,
+            ease: "none",
+            duration: 1,
+          },
+          0,
+        );
+      });
 
       ScrollTrigger.refresh();
     };
@@ -421,7 +399,7 @@ export function GallerySection() {
       cleanup();
       setGalleryChromeVisible(true);
     };
-  }, [reducedMotion, portraitRowHeight, landscapeRowHeight, staggerOffset, isReady]);
+  }, [reducedMotion, rowHeight, isReady]);
 
   const openLightbox = useCallback((photo: FilmstripPhoto) => {
     setSelectedPhoto(photo);
@@ -475,14 +453,7 @@ export function GallerySection() {
   }, [selectedPhoto, closeLightbox]);
 
   if (reducedMotion) {
-    return (
-      <GalleryFallback
-        sectionRef={sectionRef}
-        portraitRowHeight={portraitRowHeight}
-        landscapeRowHeight={landscapeRowHeight}
-        staggerOffset={staggerOffset}
-      />
-    );
+    return <GalleryFallback sectionRef={sectionRef} rowHeight={rowHeight} />;
   }
 
   return (
@@ -503,51 +474,32 @@ export function GallerySection() {
               Gallery
             </p>
             <h2 className="mt-3 font-display text-[clamp(2.25rem,6vw,4.5rem)] leading-[0.95] tracking-[0.06em]">
-              Kỷ niệm
+              Album cưới
             </h2>
           </header>
 
           <div
-            className="mt-auto flex flex-col justify-end pb-10 md:pb-14"
+            className="mt-auto flex flex-col justify-end pb-8 md:pb-12"
             style={{ gap: GALLERY_GAP }}
           >
-            <div className="overflow-hidden">
-              <div
-                data-gallery-track
-                className="flex w-max items-center will-change-transform pl-8 md:pl-16"
-                style={{ gap: GALLERY_GAP, height: portraitRowHeight }}
-              >
-                {getLoopPhotos(GALLERY_ROWS[0].photos).map((photo) => (
-                  <GalleryPhoto
-                    key={photo.id}
-                    photo={photo}
-                    rowHeight={portraitRowHeight}
-                    onSelect={openLightbox}
-                  />
-                ))}
+            {GALLERY_ROWS.map((row) => (
+              <div key={row.id} className="overflow-hidden">
+                <div
+                  data-gallery-track
+                  className={`flex w-max items-center will-change-transform ${row.offsetClass}`}
+                  style={{ gap: GALLERY_GAP, height: rowHeight }}
+                >
+                  {getLoopPhotos(row.photos).map((photo) => (
+                    <GalleryPhoto
+                      key={photo.id}
+                      photo={photo}
+                      rowHeight={rowHeight}
+                      onSelect={openLightbox}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-
-            <div className="overflow-hidden">
-              <div
-                data-gallery-track
-                className="flex w-max items-center will-change-transform"
-                style={{
-                  gap: GALLERY_GAP,
-                  height: landscapeRowHeight,
-                  paddingLeft: `calc(${staggerOffset}px + 2rem)`,
-                }}
-              >
-                {getLoopPhotos(GALLERY_ROWS[1].photos).map((photo) => (
-                  <GalleryPhoto
-                    key={photo.id}
-                    photo={photo}
-                    rowHeight={landscapeRowHeight}
-                    onSelect={openLightbox}
-                  />
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>

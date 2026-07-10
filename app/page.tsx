@@ -30,8 +30,6 @@ export default function Home() {
 
           <WeddingSection />
 
-          <SectionDivider variant="dark-to-primary" />
-
           <ThankYouSection />
         </main>
       </ScrollSmootherProvider>

@@ -1,9 +1,5 @@
 import { PreLoader } from "@/components/preloader";
-import {
-  ScrollProgress,
-  ScrollSmootherProvider,
-  SectionDivider,
-} from "@/components/layout";
+import { ScrollProgress, ScrollSmootherProvider } from "@/components/layout";
 import {
   GallerySection,
   HeroSection,
@@ -24,11 +20,7 @@ export default function Home() {
 
           <IntroductionSection />
 
-          <SectionDivider variant="beige-editorial" />
-
           <LoveStorySection />
-
-          <SectionDivider variant="beige-editorial" />
 
           <GallerySection />
 

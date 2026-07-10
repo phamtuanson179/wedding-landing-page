@@ -137,9 +137,13 @@ export function setScrollProgressColor(theme: "accent" | "beige") {
 }
 
 export function updateScrollProgressTheme() {
-  const thankYouIndex = SECTION_IDS.indexOf("section-6");
-  const currentIndex = getCurrentSectionIndex();
-  setScrollProgressColor(currentIndex >= thankYouIndex ? "beige" : "accent");
+  const currentId = SECTION_IDS[getCurrentSectionIndex()];
+  const useBeige =
+    currentId === "section-3" ||
+    currentId === "section-5" ||
+    currentId === "section-6";
+
+  setScrollProgressColor(useBeige ? "beige" : "accent");
 }
 
 export function setFinaleChrome(active: boolean) {

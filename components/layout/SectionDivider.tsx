@@ -1,10 +1,20 @@
 type SectionDividerProps = {
-  variant?: "beige" | "beige-editorial" | "beige-to-dark" | "dark-to-primary";
+  variant?:
+    | "beige"
+    | "beige-editorial"
+    | "beige-to-primary"
+    | "primary-to-beige"
+    | "beige-to-dark"
+    | "dark-to-primary";
 };
 
 const VARIANT_CLASS = {
   beige: "bg-background",
   "beige-editorial": "bg-background",
+  "beige-to-primary":
+    "bg-linear-to-b from-background via-[#b8848f] to-primary",
+  "primary-to-beige":
+    "bg-linear-to-b from-primary via-[#c9b5a8] to-background",
   "beige-to-dark": "bg-linear-to-b from-background via-background to-[#0a0a0a]",
   "dark-to-primary": "bg-linear-to-b from-[#0a0a0a] via-[#3a0012] to-primary",
 } as const;
@@ -15,9 +25,13 @@ export function SectionDivider({
   const lineClass =
     variant === "beige" || variant === "beige-editorial"
       ? "via-primary/35"
-      : variant === "beige-to-dark"
-        ? "via-primary/40"
-        : "via-[#d4b87a]/55";
+      : variant === "beige-to-primary"
+        ? "via-background/45"
+        : variant === "primary-to-beige"
+          ? "via-background/40"
+          : variant === "beige-to-dark"
+          ? "via-primary/40"
+          : "via-[#d4b87a]/55";
 
   return (
     <div

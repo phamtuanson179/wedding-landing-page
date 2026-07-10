@@ -5,7 +5,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
-import { getScroller, shouldUseHorizontalStoryScroll } from "@/lib/scroll/cornerNav";
+import { getScroller, setCornerNavColor, shouldUseHorizontalStoryScroll } from "@/lib/scroll/cornerNav";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -80,13 +80,20 @@ const PANEL_ANIMATIONS: Record<StoryPanel["index"], PanelAnimationConfig> = {
 const CONTENT_INSET =
   "px-6 pt-14 pb-24 md:px-24 md:pt-20 md:pb-28 lg:px-32";
 
+const STORY_LABEL_CLASS = "text-[#d4b87a]";
+const STORY_MUTED_CLASS = "text-background/55";
+const STORY_BODY_CLASS = "text-background/88";
+const STORY_BORDER_CLASS = "border-background/22";
+
 function StoryHeader() {
   return (
     <header>
-      <p className="text-xs uppercase tracking-[0.32em] text-foreground/68">
+      <p className={`text-xs uppercase tracking-[0.32em] ${STORY_MUTED_CLASS}`}>
         Câu chuyện của chúng mình
       </p>
-      <p className="mt-3 inline-block border border-foreground/28 px-3 py-1 text-[11px] uppercase tracking-[0.28em] text-foreground/82">
+      <p
+        className={`mt-3 inline-block border px-3 py-1.5 text-[10px] uppercase tracking-[0.28em] transition-colors ${STORY_BORDER_CLASS} ${STORY_BODY_CLASS} hover:border-[#d4b87a]/55 hover:text-background`}
+      >
         10 năm — từ bạn bè đến tri kỷ, và là một
       </p>
     </header>
@@ -96,16 +103,22 @@ function StoryHeader() {
 function PanelText({ panel }: { panel: StoryPanel }) {
   return (
     <div className="max-w-md">
-      <p className="story-text-line story-text-label text-xs uppercase tracking-[0.32em] text-primary">
+      <p
+        className={`story-text-line story-text-label text-xs uppercase tracking-[0.32em] ${STORY_LABEL_CLASS}`}
+      >
         {panel.label}
       </p>
-      <h3 className="story-text-line story-text-title mt-4 font-display text-[clamp(2rem,5vw,3.5rem)] leading-[1.05] text-foreground">
+      <h3 className="story-text-line story-text-title mt-4 font-display text-[clamp(2rem,5vw,3.5rem)] leading-[1.05] text-background">
         {panel.title}
       </h3>
-      <p className="story-text-line story-text-desc mt-5 text-base leading-relaxed text-foreground/85 md:text-lg font-light">
+      <p
+        className={`story-text-line story-text-desc mt-5 text-base leading-relaxed md:text-lg font-light ${STORY_BODY_CLASS}`}
+      >
         {panel.description}
       </p>
-      <p className="story-text-line story-text-date mt-6 text-xs uppercase tracking-[0.28em] text-foreground/62">
+      <p
+        className={`story-text-line story-text-date mt-6 text-xs uppercase tracking-[0.28em] ${STORY_MUTED_CLASS}`}
+      >
         {panel.date}
       </p>
     </div>
@@ -187,7 +200,7 @@ function ProgressIndicator({
   return (
     <div
       data-story-progress
-      className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex items-center justify-center gap-4 text-xs uppercase tracking-[0.28em] md:bottom-10"
+      className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex items-center justify-center gap-5 text-xs uppercase tracking-[0.28em] md:bottom-10"
     >
       {STORY_PANELS.map((panel, index) => (
         <span
@@ -195,7 +208,7 @@ function ProgressIndicator({
           ref={(el) => {
             progressRefs.current[index] = el;
           }}
-          className="text-foreground/48 transition-opacity duration-300"
+          className={`${STORY_MUTED_CLASS} transition-[opacity,color] duration-300`}
         >
           {panel.index}
         </span>
@@ -532,7 +545,7 @@ function StoryVerticalLayout({
     <section
       id="section-3"
       ref={sectionRef}
-      className="overflow-x-hidden bg-background text-foreground"
+      className="overflow-x-hidden bg-primary text-background"
     >
       <div className={`${CONTENT_INSET} py-16 md:py-20`}>
         <StoryHeader />
@@ -543,7 +556,7 @@ function StoryVerticalLayout({
           ref={(element) => {
             articleRefs.current[index] = element;
           }}
-          className={`${CONTENT_INSET} border-t border-foreground/10 py-14 md:py-24`}
+          className={`${CONTENT_INSET} border-t ${STORY_BORDER_CLASS} py-14 md:py-24`}
         >
           <PanelContent panel={panel} />
         </article>
@@ -577,6 +590,30 @@ export function LoveStorySection() {
 
   useLayoutEffect(() => {
     const section = sectionRef.current;
+    if (!section) {
+      return;
+    }
+
+    const scroller = getScroller();
+    const chromeTrigger = ScrollTrigger.create({
+      trigger: section,
+      start: "top 55%",
+      end: "bottom 45%",
+      scroller,
+      invalidateOnRefresh: true,
+      onEnter: () => setCornerNavColor("hero"),
+      onEnterBack: () => setCornerNavColor("hero"),
+      onLeave: () => setCornerNavColor("accent"),
+      onLeaveBack: () => setCornerNavColor("accent"),
+    });
+
+    return () => {
+      chromeTrigger.kill();
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
     const pin = pinRef.current;
     const track = trackRef.current;
     const panels = panelRefs.current.filter(Boolean) as HTMLDivElement[];
@@ -600,8 +637,8 @@ export function LoveStorySection() {
     panels.forEach((panel, index) =>
       setPanelAnimationState(panel, STORY_PANELS[index].index, false, false),
     );
-    gsap.set(progressItems, { opacity: 0.35 });
-    gsap.set(progressItems[0], { opacity: 1 });
+    gsap.set(progressItems, { opacity: 0.4, color: "rgba(230, 223, 211, 0.55)" });
+    gsap.set(progressItems[0], { opacity: 1, color: "#d4b87a" });
 
     const scrollTriggers: ScrollTrigger[] = [];
 
@@ -628,8 +665,10 @@ export function LoveStorySection() {
           );
 
           progressItems.forEach((item, index) => {
+            const isActive = index === activeIndex;
             gsap.to(item, {
-              opacity: index === activeIndex ? 1 : 0.35,
+              opacity: isActive ? 1 : 0.4,
+              color: isActive ? "#d4b87a" : "rgba(230, 223, 211, 0.55)",
               duration: 0.25,
               overwrite: true,
             });
@@ -680,10 +719,10 @@ export function LoveStorySection() {
   }
 
   return (
-    <section id="section-3" ref={sectionRef} className="relative overflow-x-hidden bg-background">
+    <section id="section-3" ref={sectionRef} className="relative overflow-x-hidden bg-primary">
       <div
         ref={pinRef}
-        className="relative h-dvh w-full overflow-hidden bg-background text-foreground"
+        className="relative h-dvh w-full overflow-hidden bg-primary text-background"
       >
         <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 ${CONTENT_INSET}`}>
           <StoryHeader />

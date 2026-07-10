@@ -1,13 +1,17 @@
-import { PreLoader } from "@/components/preloader/PreLoader";
-import { ScrollProgress } from "@/components/ScrollProgress";
-import { ScrollSmootherProvider } from "@/components/ScrollSmootherProvider";
-import { HeroSection } from "@/components/HeroSection";
-import { IntroductionSection } from "@/components/IntroductionSection";
-import { LoveStorySection } from "@/components/LoveStorySection";
-import { GallerySection } from "@/components/GallerySection";
-import { WeddingSection } from "@/components/WeddingSection";
-import { ThankYouSection } from "@/components/ThankYouSection";
-import { SectionDivider } from "@/components/SectionDivider";
+import { PreLoader } from "@/components/preloader";
+import {
+  ScrollProgress,
+  ScrollSmootherProvider,
+  SectionDivider,
+} from "@/components/layout";
+import {
+  GallerySection,
+  HeroSection,
+  IntroductionSection,
+  LoveStorySection,
+  ThankYouSection,
+  WeddingSection,
+} from "@/components/sections";
 
 export default function Home() {
   return (

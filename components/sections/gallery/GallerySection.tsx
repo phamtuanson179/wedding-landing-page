@@ -11,16 +11,23 @@ import {
 } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { getScroller, setGalleryChromeVisible } from "./cornerNav";
-import { whenPreloaderComplete } from "./preloaderState";
+import { whenPreloaderComplete } from "@/lib/preloader/preloaderState";
+import {
+  getScroller,
+  isMobileViewport,
+  setGalleryChromeVisible,
+  shouldUseGallerySkew,
+  shouldUsePinnedGallery,
+} from "@/lib/scroll/cornerNav";
 import {
   GALLERY_GAP,
   GALLERY_ROWS,
+  getGalleryGap,
   getLoopPhotos,
   getPhotoSize,
   getRowHeight,
   type FilmstripPhoto,
-} from "./gallery/filmstripPhotos";
+} from "./filmstripPhotos";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -97,7 +104,7 @@ function GalleryPhoto({
           alt={photo.alt}
           fill
           loading="eager"
-          sizes="(max-width: 768px) 55vw, 28vw"
+          sizes="(max-width: 768px) 38vw, 28vw"
           className="object-cover"
           draggable={false}
         />
@@ -109,9 +116,13 @@ function GalleryPhoto({
 function GalleryFallback({
   sectionRef,
   rowHeight,
+  galleryGap,
+  onSelect,
 }: {
   sectionRef: React.RefObject<HTMLElement | null>;
   rowHeight: number;
+  galleryGap: number;
+  onSelect: (photo: FilmstripPhoto) => void;
 }) {
   return (
     <section
@@ -130,13 +141,13 @@ function GalleryFallback({
       </header>
       <div className="space-y-10 overflow-x-auto">
         {GALLERY_ROWS.map((row) => (
-          <div key={row.id} className="flex" style={{ gap: GALLERY_GAP }}>
+          <div key={row.id} className="flex" style={{ gap: galleryGap }}>
             {row.photos.map((photo) => (
               <GalleryPhoto
                 key={photo.id}
                 photo={photo}
                 rowHeight={rowHeight}
-                onSelect={() => {}}
+                onSelect={onSelect}
               />
             ))}
           </div>
@@ -186,25 +197,30 @@ export function GallerySection() {
   const pinRef = useRef<HTMLDivElement>(null);
   const lightboxRef = useRef<HTMLDivElement>(null);
 
-  const [reducedMotion] = useState(() => {
+  const [useSimpleGallery] = useState(() => {
     if (typeof window === "undefined") {
       return false;
     }
 
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    return !shouldUsePinnedGallery();
   });
 
   const [rowHeight, setRowHeight] = useState(SSR_ROW_HEIGHT);
+  const [galleryGap, setGalleryGap] = useState(GALLERY_GAP);
   const [isReady, setIsReady] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<FilmstripPhoto | null>(null);
 
   useLayoutEffect(() => {
-    setRowHeight(getRowHeight());
+    const updateGalleryMetrics = () => {
+      setRowHeight(getRowHeight());
+      setGalleryGap(getGalleryGap());
+    };
+
+    updateGalleryMetrics();
     setIsReady(true);
 
-    const updateRowHeight = () => setRowHeight(getRowHeight());
-    window.addEventListener("resize", updateRowHeight);
-    return () => window.removeEventListener("resize", updateRowHeight);
+    window.addEventListener("resize", updateGalleryMetrics);
+    return () => window.removeEventListener("resize", updateGalleryMetrics);
   }, []);
 
   useLayoutEffect(() => {
@@ -244,7 +260,7 @@ export function GallerySection() {
 
       cleanup();
 
-      if (reducedMotion) {
+      if (useSimpleGallery) {
         chromeTrigger = ScrollTrigger.create({
           trigger: section,
           start: "top bottom",
@@ -319,11 +335,15 @@ export function GallerySection() {
           start: "top top",
           end: () => `+=${getPinDistance()}`,
           pin,
-          scrub: 1,
+          scrub: isMobileViewport() ? 0.6 : 1,
           scroller,
           anticipatePin: 1,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
+            if (!shouldUseGallerySkew()) {
+              return;
+            }
+
             const velocity = self.getVelocity();
             const skewAmount = gsap.utils.clamp(-4.5, 4.5, velocity * 0.008);
 
@@ -387,7 +407,9 @@ export function GallerySection() {
     });
 
     const handleResize = () => {
-      ScrollTrigger.refresh();
+      if (!useSimpleGallery) {
+        ScrollTrigger.refresh();
+      }
     };
 
     window.addEventListener("resize", handleResize);
@@ -399,7 +421,7 @@ export function GallerySection() {
       cleanup();
       setGalleryChromeVisible(true);
     };
-  }, [reducedMotion, rowHeight, isReady]);
+  }, [useSimpleGallery, rowHeight, galleryGap, isReady]);
 
   const openLightbox = useCallback((photo: FilmstripPhoto) => {
     setSelectedPhoto(photo);
@@ -452,8 +474,15 @@ export function GallerySection() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedPhoto, closeLightbox]);
 
-  if (reducedMotion) {
-    return <GalleryFallback sectionRef={sectionRef} rowHeight={rowHeight} />;
+  if (useSimpleGallery) {
+    return (
+      <GalleryFallback
+        sectionRef={sectionRef}
+        rowHeight={rowHeight}
+        galleryGap={galleryGap}
+        onSelect={openLightbox}
+      />
+    );
   }
 
   return (
@@ -467,27 +496,27 @@ export function GallerySection() {
       >
         <div
           ref={pinRef}
-          className="relative flex h-screen min-h-screen flex-col overflow-hidden"
+          className="relative flex h-dvh min-h-dvh flex-col overflow-hidden"
         >
-          <header className="pointer-events-none absolute top-14 left-8 z-20 md:top-20 md:left-16">
-            <p className="text-[10px] uppercase tracking-[0.32em] text-foreground/45">
+          <header className="pointer-events-none absolute top-10 left-6 z-20 md:top-20 md:left-16">
+            <p className="text-[9px] uppercase tracking-[0.28em] text-foreground/45 md:text-[10px] md:tracking-[0.32em]">
               Gallery
             </p>
-            <h2 className="mt-3 font-display text-[clamp(2.25rem,6vw,4.5rem)] leading-[0.95] tracking-[0.06em]">
+            <h2 className="mt-2 font-display text-[clamp(1.75rem,5vw,4.5rem)] leading-[0.95] tracking-[0.06em] md:mt-3">
               Album cưới
             </h2>
           </header>
 
           <div
-            className="mt-auto flex flex-col justify-end pb-8 md:pb-12"
-            style={{ gap: GALLERY_GAP }}
+            className="mt-auto flex flex-col justify-end pb-6 md:pb-12"
+            style={{ gap: galleryGap }}
           >
             {GALLERY_ROWS.map((row) => (
               <div key={row.id} className="overflow-hidden">
                 <div
                   data-gallery-track
                   className={`flex w-max items-center will-change-transform ${row.offsetClass}`}
-                  style={{ gap: GALLERY_GAP, height: rowHeight }}
+                  style={{ gap: galleryGap, height: rowHeight }}
                 >
                   {getLoopPhotos(row.photos).map((photo) => (
                     <GalleryPhoto

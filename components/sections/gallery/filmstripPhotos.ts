@@ -16,7 +16,9 @@ export type GalleryRowConfig = {
 };
 
 export const GALLERY_GAP = 40;
+export const MOBILE_GALLERY_GAP = 16;
 export const ROW_HEIGHT_RATIO = 0.22;
+export const MOBILE_ROW_HEIGHT_RATIO = 0.17;
 
 const ASPECT_WIDTH: Record<FilmstripAspect, number> = {
   "3/4": 3 / 4,
@@ -33,12 +35,28 @@ export function getLoopPhotos(photos: FilmstripPhoto[]) {
   ];
 }
 
+function isMobileGalleryViewport() {
+  return window.matchMedia("(max-width: 767px)").matches;
+}
+
 export function getRowHeight() {
   if (typeof window === "undefined") {
     return 200;
   }
 
-  return Math.round(window.innerHeight * ROW_HEIGHT_RATIO);
+  const ratio = isMobileGalleryViewport()
+    ? MOBILE_ROW_HEIGHT_RATIO
+    : ROW_HEIGHT_RATIO;
+
+  return Math.round(window.innerHeight * ratio);
+}
+
+export function getGalleryGap() {
+  if (typeof window === "undefined") {
+    return GALLERY_GAP;
+  }
+
+  return isMobileGalleryViewport() ? MOBILE_GALLERY_GAP : GALLERY_GAP;
 }
 
 export function getPhotoSize(aspect: FilmstripAspect, rowHeight: number) {
@@ -53,7 +71,7 @@ export const GALLERY_ROWS: GalleryRowConfig[] = [
     id: "row-1",
     direction: "left",
     speed: 1,
-    offsetClass: "pl-8 md:pl-16",
+    offsetClass: "pl-4 md:pl-16",
     photos: [
       {
         id: "r1-01",
@@ -91,7 +109,7 @@ export const GALLERY_ROWS: GalleryRowConfig[] = [
     id: "row-2",
     direction: "right",
     speed: 0.82,
-    offsetClass: "pl-14 md:pl-24",
+    offsetClass: "pl-8 md:pl-24",
     photos: [
       {
         id: "r2-01",
@@ -129,7 +147,7 @@ export const GALLERY_ROWS: GalleryRowConfig[] = [
     id: "row-3",
     direction: "left",
     speed: 0.9,
-    offsetClass: "pl-20 md:pl-32",
+    offsetClass: "pl-12 md:pl-32",
     photos: [
       {
         id: "r3-01",

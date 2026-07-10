@@ -5,17 +5,17 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Image from "next/image";
 import {
-  HERO_ENTRANCE_COMPLETE,
-  HERO_ENTRANCE_START,
-  dispatchHeroEntranceComplete,
-} from "./heroEntrance";
-import {
   ensureDesktopCornerChromeVisible,
   getScroller,
   isMobileViewport,
   setCornerNavColor,
   setMobileCornerNavVisible,
-} from "./cornerNav";
+} from "@/lib/scroll/cornerNav";
+import {
+  HERO_ENTRANCE_COMPLETE,
+  HERO_ENTRANCE_START,
+  dispatchHeroEntranceComplete,
+} from "./heroEntrance";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -189,28 +189,26 @@ export function HeroSection() {
 
     const heroTrigger = ScrollTrigger.create({
       trigger: hero,
-      start: "bottom top",
+      start: "top top",
+      end: "bottom top",
       scroller,
       invalidateOnRefresh: true,
-      onEnter: () => {
+      onLeave: () => {
         setCornerNavColor("accent");
         setMobileCornerNavVisible(false);
       },
-      onLeaveBack: () => {
+      onEnterBack: () => {
         setCornerNavColor("hero");
         setMobileCornerNavVisible(true);
       },
-      onRefresh: (self) => {
-        if (!isMobileViewport()) {
-          return;
-        }
-
-        setMobileCornerNavVisible(!self.isActive);
-      },
     });
 
-    if (heroTrigger.isActive && isMobileViewport()) {
-      setMobileCornerNavVisible(false);
+    if (isMobileViewport()) {
+      const pastHero = hero.getBoundingClientRect().bottom <= 0;
+      setMobileCornerNavVisible(!pastHero);
+      if (pastHero) {
+        setCornerNavColor("accent");
+      }
     }
 
     media.add("(min-width: 768px)", () => {

@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { getScroller } from "./cornerNav";
+import { getScroller } from "@/lib/scroll/cornerNav";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -352,7 +352,7 @@ export function WeddingSection() {
       <section
         id="section-5"
         ref={sectionRef}
-        className="relative flex h-screen min-h-screen flex-col overflow-hidden bg-[#0a0a0a] text-background"
+        className="relative flex h-dvh min-h-dvh flex-col overflow-hidden bg-[#0a0a0a] text-background"
       >
         <div
           className={`mx-auto flex h-full w-full max-w-7xl flex-col justify-between py-10 md:py-14 ${CONTENT_INSET}`}

@@ -4,6 +4,7 @@ import { useLayoutEffect } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
+import { shouldUseScrollSmoother } from "@/lib/scroll/cornerNav";
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
@@ -15,16 +16,12 @@ export function ScrollSmootherProvider({
   children,
 }: ScrollSmootherProviderProps) {
   useLayoutEffect(() => {
+    ScrollTrigger.config({
+      ignoreMobileResize: true,
+    });
+
     const wrapper = document.getElementById("smooth-wrapper");
-    if (!wrapper) {
-      return;
-    }
-
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    if (prefersReducedMotion) {
+    if (!wrapper || !shouldUseScrollSmoother()) {
       return;
     }
 
@@ -44,6 +41,8 @@ export function ScrollSmootherProvider({
         );
       },
     });
+
+    ScrollTrigger.refresh();
 
     return () => {
       smoother.kill();

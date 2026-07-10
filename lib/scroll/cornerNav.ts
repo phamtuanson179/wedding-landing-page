@@ -1,6 +1,6 @@
 import gsap from "gsap";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
-import { isPreloaderPolygonAnimating } from "./preloaderState";
+import { isPreloaderPolygonAnimating } from "@/lib/preloader/preloaderState";
 
 export const SECTION_IDS = [
   "main",
@@ -11,16 +11,65 @@ export const SECTION_IDS = [
   "section-6",
 ] as const;
 
-export function getScroller() {
-  return document.getElementById("smooth-wrapper") ? "#smooth-wrapper" : undefined;
-}
+export function isTouchDevice() {
+  if (typeof window === "undefined") {
+    return false;
+  }
 
-export function getCornerNav() {
-  return document.querySelector<HTMLElement>("[data-corner-nav]");
+  return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
 }
 
 export function isMobileViewport() {
   return window.matchMedia("(max-width: 767px)").matches;
+}
+
+export function shouldUseScrollSmoother() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+
+  return !prefersReducedMotion && !isTouchDevice() && !isMobileViewport();
+}
+
+export function shouldUsePinnedGallery() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+export function shouldUseGallerySkew() {
+  return shouldUseScrollSmoother();
+}
+
+export function shouldUseHorizontalStoryScroll() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return false;
+  }
+
+  return !isTouchDevice();
+}
+
+export function getScroller() {
+  const wrapper = document.getElementById("smooth-wrapper");
+  if (!wrapper?.classList.contains("is-smooth")) {
+    return undefined;
+  }
+
+  return "#smooth-wrapper";
+}
+
+export function getCornerNav() {
+  return document.querySelector<HTMLElement>("[data-corner-nav]");
 }
 
 function getCornerChrome() {
@@ -46,6 +95,10 @@ function isPreloaderActive() {
 
 let isGalleryChromeHidden = false;
 let isMobileCornerNavHidden = false;
+
+function setPastHeroState(pastHero: boolean) {
+  document.documentElement.toggleAttribute("data-past-hero", pastHero);
+}
 
 function showCornerChrome() {
   const targets = Array.from(getCornerChrome());
@@ -127,13 +180,29 @@ export function setMobileCornerNavVisible(visible: boolean) {
   }
 
   isMobileCornerNavHidden = !visible;
+  setPastHeroState(!visible);
 
   const cornerNav = getCornerNav();
-  if (!cornerNav) {
+  const cornerChrome = Array.from(getCornerChrome());
+
+  if (!visible) {
+    if (cornerNav) {
+      gsap.set(cornerNav, {
+        autoAlpha: 0,
+        visibility: "hidden",
+        overwrite: true,
+      });
+    }
+
+    gsap.set(cornerChrome, {
+      autoAlpha: 0,
+      visibility: "hidden",
+      overwrite: true,
+    });
     return;
   }
 
-  if (visible) {
+  if (cornerNav) {
     gsap.to(cornerNav, {
       autoAlpha: 1,
       visibility: "visible",
@@ -141,14 +210,17 @@ export function setMobileCornerNavVisible(visible: boolean) {
       ease: "power2.out",
       overwrite: true,
     });
-    return;
   }
 
-  gsap.set(cornerNav, {
-    autoAlpha: 0,
-    visibility: "hidden",
-    overwrite: true,
-  });
+  if (!isGalleryChromeHidden) {
+    gsap.to(cornerChrome, {
+      autoAlpha: 1,
+      visibility: "visible",
+      duration: 0.35,
+      ease: "power2.out",
+      overwrite: true,
+    });
+  }
 }
 
 export function setGalleryChromeVisible(visible: boolean) {

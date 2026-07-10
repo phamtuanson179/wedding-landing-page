@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { getScroller } from "./cornerNav";
+import { getScroller } from "@/lib/scroll/cornerNav";
 
 gsap.registerPlugin(ScrollTrigger);
 

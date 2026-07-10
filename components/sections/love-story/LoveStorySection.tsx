@@ -5,6 +5,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
+import { getScroller, shouldUseHorizontalStoryScroll } from "@/lib/scroll/cornerNav";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -77,9 +78,7 @@ const PANEL_ANIMATIONS: Record<StoryPanel["index"], PanelAnimationConfig> = {
 };
 
 const CONTENT_INSET =
-  "px-12 pt-14 pb-24 md:px-24 md:pt-20 md:pb-28 lg:px-32";
-
-import { getScroller } from "./cornerNav";
+  "px-6 pt-14 pb-24 md:px-24 md:pt-20 md:pb-28 lg:px-32";
 
 function StoryHeader() {
   return (
@@ -389,7 +388,179 @@ function setupPanelRevealAnimations(
   }
 }
 
+function setupVerticalPanelRevealAnimations(
+  panel: HTMLElement,
+  panelIndex: StoryPanel["index"],
+  scrollTriggers: ScrollTrigger[],
+) {
+  const config = PANEL_ANIMATIONS[panelIndex];
+  const mask = panel.querySelector<HTMLElement>(".story-image-mask");
+  const inner = panel.querySelector<HTMLElement>(".story-image-inner");
+  const label = panel.querySelector<HTMLElement>(".story-text-label");
+  const title = panel.querySelector<HTMLElement>(".story-text-title");
+  const desc = panel.querySelector<HTMLElement>(".story-text-desc");
+  const date = panel.querySelector<HTMLElement>(".story-text-date");
+  const textLines = [label, title, desc, date].filter(Boolean) as HTMLElement[];
+
+  if (!mask || !inner) {
+    return;
+  }
+
+  const scroller = getScroller();
+
+  const imageReveal: ScrollTrigger.Vars = {
+    trigger: panel,
+    start: "top 82%",
+    end: "top 48%",
+    scrub: 0.55,
+    scroller,
+  };
+
+  const maskTween = gsap.fromTo(
+    mask,
+    { clipPath: config.maskHidden },
+    {
+      clipPath: "inset(0% 0% 0% 0%)",
+      ease: "power2.out",
+      scrollTrigger: imageReveal,
+    },
+  );
+  if (maskTween.scrollTrigger) {
+    scrollTriggers.push(maskTween.scrollTrigger);
+  }
+
+  const imageScaleTween = gsap.fromTo(
+    inner,
+    { scale: 1.1 },
+    {
+      scale: 1,
+      ease: "power2.out",
+      scrollTrigger: imageReveal,
+    },
+  );
+  if (imageScaleTween.scrollTrigger) {
+    scrollTriggers.push(imageScaleTween.scrollTrigger);
+  }
+
+  const parallaxTween = gsap.fromTo(
+    inner,
+    { x: config.parallaxX[0], y: config.parallaxY[0] },
+    {
+      x: config.parallaxX[1],
+      y: config.parallaxY[1],
+      ease: "none",
+      scrollTrigger: {
+        trigger: panel,
+        start: "top bottom",
+        end: "bottom top",
+        scrub: true,
+        scroller,
+      },
+    },
+  );
+  if (parallaxTween.scrollTrigger) {
+    scrollTriggers.push(parallaxTween.scrollTrigger);
+  }
+
+  const textTween = gsap.fromTo(
+    textLines,
+    { y: 30, autoAlpha: 0 },
+    {
+      y: 0,
+      autoAlpha: 1,
+      stagger: 0.08,
+      ease: "power2.out",
+      scrollTrigger: {
+        trigger: panel,
+        start: "top 76%",
+        end: "top 46%",
+        scrub: 0.5,
+        scroller,
+      },
+    },
+  );
+  if (textTween.scrollTrigger) {
+    scrollTriggers.push(textTween.scrollTrigger);
+  }
+}
+
+function StoryVerticalLayout({
+  sectionRef,
+  animate,
+}: {
+  sectionRef?: React.RefObject<HTMLElement | null>;
+  animate: boolean;
+}) {
+  const articleRefs = useRef<Array<HTMLElement | null>>([]);
+
+  useLayoutEffect(() => {
+    const articles = articleRefs.current.filter(Boolean) as HTMLElement[];
+
+    if (articles.length === 0) {
+      return;
+    }
+
+    if (!animate) {
+      articles.forEach((article, index) => {
+        setPanelAnimationState(article, STORY_PANELS[index].index, true, false);
+      });
+      return;
+    }
+
+    const scrollTriggers: ScrollTrigger[] = [];
+
+    articles.forEach((article, index) => {
+      setPanelAnimationState(article, STORY_PANELS[index].index, false, false);
+      setupVerticalPanelRevealAnimations(
+        article,
+        STORY_PANELS[index].index,
+        scrollTriggers,
+      );
+    });
+
+    const refresh = () => ScrollTrigger.refresh();
+    window.addEventListener("resize", refresh);
+    requestAnimationFrame(refresh);
+
+    return () => {
+      window.removeEventListener("resize", refresh);
+      scrollTriggers.forEach((trigger) => trigger.kill());
+    };
+  }, [animate]);
+
+  return (
+    <section
+      id="section-3"
+      ref={sectionRef}
+      className="overflow-x-hidden bg-background text-foreground"
+    >
+      <div className={`${CONTENT_INSET} py-16 md:py-20`}>
+        <StoryHeader />
+      </div>
+      {STORY_PANELS.map((panel, index) => (
+        <article
+          key={panel.index}
+          ref={(element) => {
+            articleRefs.current[index] = element;
+          }}
+          className={`${CONTENT_INSET} border-t border-foreground/10 py-14 md:py-24`}
+        >
+          <PanelContent panel={panel} />
+        </article>
+      ))}
+    </section>
+  );
+}
+
 export function LoveStorySection() {
+  const [useVerticalStory] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
+    }
+
+    return !shouldUseHorizontalStoryScroll();
+  });
+
   const [reducedMotion] = useState(() => {
     if (typeof window === "undefined") {
       return false;
@@ -419,7 +590,7 @@ export function LoveStorySection() {
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    if (prefersReducedMotion || !pin || !track || panels.length === 0) {
+    if (useVerticalStory || prefersReducedMotion || !pin || !track || panels.length === 0) {
       return;
     }
 
@@ -449,6 +620,7 @@ export function LoveStorySection() {
         scroller,
         anticipatePin: 1,
         invalidateOnRefresh: true,
+        pinReparent: false,
         onUpdate: (self) => {
           const activeIndex = Math.min(
             Math.round(self.progress * (panels.length - 1)),
@@ -496,44 +668,35 @@ export function LoveStorySection() {
       horizontalTween.kill();
       scrollTriggers.forEach((trigger) => trigger.kill());
     };
-  }, [reducedMotion]);
+  }, [reducedMotion, useVerticalStory]);
 
-  if (reducedMotion) {
+  if (useVerticalStory || reducedMotion) {
     return (
-      <section id="section-3" className="bg-background text-foreground">
-        <div className={`${CONTENT_INSET} py-20`}>
-          <StoryHeader />
-        </div>
-        {STORY_PANELS.map((panel) => (
-          <article
-            key={panel.index}
-            className={`${CONTENT_INSET} border-t border-foreground/10 py-16 md:py-24`}
-          >
-            <PanelContent panel={panel} />
-          </article>
-        ))}
-      </section>
+      <StoryVerticalLayout
+        sectionRef={sectionRef}
+        animate={useVerticalStory && !reducedMotion}
+      />
     );
   }
 
   return (
-    <section id="section-3" ref={sectionRef} className="relative bg-background">
+    <section id="section-3" ref={sectionRef} className="relative overflow-x-hidden bg-background">
       <div
         ref={pinRef}
-        className="relative h-screen w-full overflow-hidden bg-background text-foreground"
+        className="relative h-dvh w-full overflow-hidden bg-background text-foreground"
       >
         <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 ${CONTENT_INSET}`}>
           <StoryHeader />
         </div>
 
-        <div ref={trackRef} className="flex h-full will-change-transform">
+        <div ref={trackRef} className="flex h-full w-full will-change-transform">
           {STORY_PANELS.map((panel, index) => (
             <div
               key={panel.index}
               ref={(el) => {
                 panelRefs.current[index] = el;
               }}
-              className={`h-full w-screen shrink-0 ${CONTENT_INSET}`}
+              className={`h-full w-full shrink-0 basis-full ${CONTENT_INSET}`}
             >
               <PanelContent panel={panel} className="pt-28 md:pt-32" />
             </div>

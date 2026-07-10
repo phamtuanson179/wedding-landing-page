@@ -8,24 +8,50 @@ import { ScrollArrowSvg } from "./ScrollArrowSvg";
 
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { dispatchHeroEntranceStart, HERO_ENTRANCE_COMPLETE } from "@/components/sections/hero/heroEntrance";
 import {
-  HERO_ENTRANCE_COMPLETE,
-  dispatchHeroEntranceStart,
-} from "../heroEntrance";
-import { setCornerNavColor, ensureCornerChromeVisible, scrollToNextSection } from "../cornerNav";
-import { setPreloaderPolygonAnimating } from "../preloaderState";
+  ensureCornerChromeVisible,
+  scrollToNextSection,
+  setCornerNavColor,
+} from "@/lib/scroll/cornerNav";
+import { setPreloaderPolygonAnimating } from "@/lib/preloader/preloaderState";
+
+gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
 const LOADING_DURATION = 2;
 const TRANSITION_DURATION = 2.2;
 const POLYGON_END_SIZE = 88;
 const POLYGON_LOADING_SIZE = 176;
 
-function getPolygonCenterOffset(wrapper: HTMLElement) {
-  const rect = wrapper.getBoundingClientRect();
+function getViewportMetrics() {
+  const visualViewport = window.visualViewport;
+
+  if (visualViewport) {
+    return {
+      width: visualViewport.width,
+      height: visualViewport.height,
+      offsetLeft: visualViewport.offsetLeft,
+      offsetTop: visualViewport.offsetTop,
+    };
+  }
 
   return {
-    x: Math.round(-rect.left + window.innerWidth / 2 - rect.width / 2),
-    y: Math.round(-rect.top + window.innerHeight / 2 - rect.height / 2),
+    width: window.innerWidth,
+    height: window.innerHeight,
+    offsetLeft: 0,
+    offsetTop: 0,
+  };
+}
+
+function getPolygonCenterOffset(wrapper: HTMLElement) {
+  const rect = wrapper.getBoundingClientRect();
+  const viewport = getViewportMetrics();
+  const centerX = viewport.offsetLeft + viewport.width / 2;
+  const centerY = viewport.offsetTop + viewport.height / 2;
+
+  return {
+    x: Math.round(centerX - rect.left - rect.width / 2),
+    y: Math.round(centerY - rect.top - rect.height / 2),
   };
 }
 
@@ -48,9 +74,15 @@ function setInitialState({
     width: POLYGON_LOADING_SIZE,
     height: POLYGON_LOADING_SIZE,
     scale: 1,
+    x: 0,
+    y: 0,
     transformOrigin: "center center",
     force3D: false,
+    autoAlpha: 0,
+    visibility: "hidden",
   });
+
+  void polygonWrapper.offsetHeight;
 
   const centerOffset = getPolygonCenterOffset(polygonWrapper);
   const strokeLength = polygon.getTotalLength();
@@ -59,6 +91,8 @@ function setInitialState({
   gsap.set(polygonWrapper, {
     x: centerOffset.x,
     y: centerOffset.y,
+    autoAlpha: 1,
+    visibility: "visible",
   });
   gsap.set(polygon, {
     strokeDasharray: strokeLength,
@@ -284,10 +318,6 @@ export function PreLoader() {
 
     setCornerNavColor("loading");
     ensureCornerChromeVisible();
-    gsap.set(elements.polygonWrapper, {
-      autoAlpha: 1,
-      visibility: "visible",
-    });
 
     setPreloaderPolygonAnimating(true);
 
@@ -300,11 +330,24 @@ export function PreLoader() {
       smoother?.paused(false);
     };
 
-    const { strokeLength } = setInitialState(elements);
+    let timeline: gsap.core.Timeline | undefined;
 
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
+    const startTimeline = () => {
+      const { strokeLength } = setInitialState(elements);
+
+      const prefersReducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+
+      timeline = prefersReducedMotion
+        ? createReducedMotionTimeline(elements, finishPreloader, revealArrow)
+        : createMainTimeline(
+            elements,
+            strokeLength,
+            finishPreloader,
+            revealArrow,
+          );
+    };
 
     const finishPreloader = () => {
       setPreloaderPolygonAnimating(false);
@@ -354,14 +397,9 @@ export function PreLoader() {
 
     window.addEventListener(HERO_ENTRANCE_COMPLETE, handleHeroEntranceComplete);
 
-    const timeline = prefersReducedMotion
-      ? createReducedMotionTimeline(elements, finishPreloader, revealArrow)
-      : createMainTimeline(
-          elements,
-          strokeLength,
-          finishPreloader,
-          revealArrow,
-        );
+    requestAnimationFrame(() => {
+      requestAnimationFrame(startTimeline);
+    });
 
     return () => {
       window.removeEventListener(
@@ -372,7 +410,7 @@ export function PreLoader() {
       arrowBounceTweenRef.current?.kill();
       scrollHintTweenRef.current?.kill();
       setPreloaderPolygonAnimating(false);
-      timeline.kill();
+      timeline?.kill();
       restoreScrollState();
     };
   }, []);
@@ -395,7 +433,7 @@ export function PreLoader() {
         <div
           ref={polygonWrapperRef}
           data-scroll-polygon
-          className={`fixed lg:bottom-16 lg:right-16 bottom-8 right-8 size-22 [backface-visibility:visible] ${
+          className={`invisible fixed bottom-8 right-8 size-22 [backface-visibility:visible] lg:bottom-16 lg:right-16 ${
             isInteractive ? "pointer-events-auto" : "pointer-events-none"
           }`}
         >

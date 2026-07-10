@@ -21,6 +21,13 @@ export const metadata: Metadata = {
   title: "Wedding | Sơn & Linh",
   description:
     "Website thiệp cưới của chú rể Phạm Tuấn Sơn và cô dâu Nguyễn Thị Thùy Linh.",
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/apple-icon.png",
+  },
 };
 
 export const viewport: Viewport = {

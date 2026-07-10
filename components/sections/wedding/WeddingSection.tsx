@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { getScroller } from "@/lib/scroll/cornerNav";
+import { getScroller, setCornerNavColor } from "@/lib/scroll/cornerNav";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -272,6 +272,29 @@ export function WeddingSection() {
   const receptionRef = useRef<HTMLDivElement>(null);
   const venueRef = useRef<HTMLDivElement>(null);
   const [mapsOpen, setMapsOpen] = useState(false);
+
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
+    if (!section) {
+      return;
+    }
+
+    const scroller = getScroller();
+    const chromeTrigger = ScrollTrigger.create({
+      trigger: section,
+      start: "top 55%",
+      end: "bottom 45%",
+      scroller,
+      invalidateOnRefresh: true,
+      onEnter: () => setCornerNavColor("hero"),
+      onEnterBack: () => setCornerNavColor("hero"),
+      onLeaveBack: () => setCornerNavColor("accent"),
+    });
+
+    return () => {
+      chromeTrigger.kill();
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const section = sectionRef.current;

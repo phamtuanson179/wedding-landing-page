@@ -1,11 +1,46 @@
 "use client";
 
 import Image from "next/image";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
-import { getScroller, setCornerNavColor, shouldUseHorizontalStoryScroll } from "@/lib/scroll/cornerNav";
+import {
+  getScroller,
+  isTouchDevice,
+  setCornerNavColor,
+  shouldUseHorizontalStoryScroll,
+} from "@/lib/scroll/cornerNav";
+
+type StoryScrollAxis = "x" | "y";
+
+function subscribeStoryScrollAxis(onStoreChange: () => void) {
+  const touchMq = window.matchMedia("(hover: none) and (pointer: coarse)");
+  const motionMq = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+  const onChange = () => onStoreChange();
+  touchMq.addEventListener("change", onChange);
+  motionMq.addEventListener("change", onChange);
+  window.addEventListener("resize", onChange);
+
+  return () => {
+    touchMq.removeEventListener("change", onChange);
+    motionMq.removeEventListener("change", onChange);
+    window.removeEventListener("resize", onChange);
+  };
+}
+
+function getStoryScrollAxisSnapshot(): StoryScrollAxis {
+  return shouldUseHorizontalStoryScroll() ? "x" : "y";
+}
+
+function useStoryScrollAxis() {
+  return useSyncExternalStore(
+    subscribeStoryScrollAxis,
+    getStoryScrollAxisSnapshot,
+    (): StoryScrollAxis => "x",
+  );
+}
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -267,11 +302,42 @@ function setPanelAnimationState(
   gsap.set(textLines, { y: 30, autoAlpha: 0 });
 }
 
-function setupPanelRevealAnimations(
+function setupHorizontalPanelRevealAnimations(
   panel: HTMLElement,
   panelIndex: StoryPanel["index"],
   horizontalTween: gsap.core.Tween,
   scrollTriggers: ScrollTrigger[],
+) {
+  setupPinnedPanelRevealAnimations(
+    panel,
+    panelIndex,
+    horizontalTween,
+    scrollTriggers,
+    "x",
+  );
+}
+
+function setupVerticalPanelRevealAnimations(
+  panel: HTMLElement,
+  panelIndex: StoryPanel["index"],
+  verticalTween: gsap.core.Tween,
+  scrollTriggers: ScrollTrigger[],
+) {
+  setupPinnedPanelRevealAnimations(
+    panel,
+    panelIndex,
+    verticalTween,
+    scrollTriggers,
+    "y",
+  );
+}
+
+function setupPinnedPanelRevealAnimations(
+  panel: HTMLElement,
+  panelIndex: StoryPanel["index"],
+  containerTween: gsap.core.Tween,
+  scrollTriggers: ScrollTrigger[],
+  axis: StoryScrollAxis,
 ) {
   const config = PANEL_ANIMATIONS[panelIndex];
   const mask = panel.querySelector<HTMLElement>(".story-image-mask");
@@ -280,6 +346,7 @@ function setupPanelRevealAnimations(
   const title = panel.querySelector<HTMLElement>(".story-text-title");
   const desc = panel.querySelector<HTMLElement>(".story-text-desc");
   const date = panel.querySelector<HTMLElement>(".story-text-date");
+  const isVertical = axis === "y";
 
   if (!mask || !inner) {
     return;
@@ -287,9 +354,9 @@ function setupPanelRevealAnimations(
 
   const imageReveal: ScrollTrigger.Vars = {
     trigger: panel,
-    containerAnimation: horizontalTween,
-    start: "left 85%",
-    end: "left 45%",
+    containerAnimation: containerTween,
+    start: isVertical ? "top 85%" : "left 85%",
+    end: isVertical ? "top 45%" : "left 45%",
     scrub: 0.6,
   };
 
@@ -328,9 +395,9 @@ function setupPanelRevealAnimations(
       ease: "none",
       scrollTrigger: {
         trigger: panel,
-        containerAnimation: horizontalTween,
-        start: "left right",
-        end: "right left",
+        containerAnimation: containerTween,
+        start: isVertical ? "top bottom" : "left right",
+        end: isVertical ? "bottom top" : "right left",
         scrub: true,
       },
     },
@@ -357,7 +424,7 @@ function setupPanelRevealAnimations(
         ease: "power2.out",
         scrollTrigger: {
           trigger: panel,
-          containerAnimation: horizontalTween,
+          containerAnimation: containerTween,
           start,
           end,
           scrub: 0.55,
@@ -371,10 +438,17 @@ function setupPanelRevealAnimations(
   };
 
   if (panelIndex === "02") {
-    revealText(label, "left 82%", "left 68%");
-    revealText(title, "left 78%", "left 60%");
-    revealText(desc, "left 74%", "left 54%");
-    revealText(date, "left 70%", "left 50%");
+    if (isVertical) {
+      revealText(label, "top 82%", "top 68%");
+      revealText(title, "top 78%", "top 60%");
+      revealText(desc, "top 74%", "top 54%");
+      revealText(date, "top 70%", "top 50%");
+    } else {
+      revealText(label, "left 82%", "left 68%");
+      revealText(title, "left 78%", "left 60%");
+      revealText(desc, "left 74%", "left 54%");
+      revealText(date, "left 70%", "left 50%");
+    }
     return;
   }
 
@@ -389,9 +463,9 @@ function setupPanelRevealAnimations(
       ease: "power2.out",
       scrollTrigger: {
         trigger: panel,
-        containerAnimation: horizontalTween,
-        start: "left 80%",
-        end: "left 50%",
+        containerAnimation: containerTween,
+        start: isVertical ? "top 80%" : "left 80%",
+        end: isVertical ? "top 50%" : "left 50%",
         scrub: 0.55,
       },
     },
@@ -401,145 +475,20 @@ function setupPanelRevealAnimations(
   }
 }
 
-function setupVerticalPanelRevealAnimations(
-  panel: HTMLElement,
-  panelIndex: StoryPanel["index"],
-  scrollTriggers: ScrollTrigger[],
-) {
-  const config = PANEL_ANIMATIONS[panelIndex];
-  const mask = panel.querySelector<HTMLElement>(".story-image-mask");
-  const inner = panel.querySelector<HTMLElement>(".story-image-inner");
-  const label = panel.querySelector<HTMLElement>(".story-text-label");
-  const title = panel.querySelector<HTMLElement>(".story-text-title");
-  const desc = panel.querySelector<HTMLElement>(".story-text-desc");
-  const date = panel.querySelector<HTMLElement>(".story-text-date");
-  const textLines = [label, title, desc, date].filter(Boolean) as HTMLElement[];
-
-  if (!mask || !inner) {
-    return;
-  }
-
-  const scroller = getScroller();
-
-  const imageReveal: ScrollTrigger.Vars = {
-    trigger: panel,
-    start: "top 82%",
-    end: "top 48%",
-    scrub: 0.55,
-    scroller,
-  };
-
-  const maskTween = gsap.fromTo(
-    mask,
-    { clipPath: config.maskHidden },
-    {
-      clipPath: "inset(0% 0% 0% 0%)",
-      ease: "power2.out",
-      scrollTrigger: imageReveal,
-    },
-  );
-  if (maskTween.scrollTrigger) {
-    scrollTriggers.push(maskTween.scrollTrigger);
-  }
-
-  const imageScaleTween = gsap.fromTo(
-    inner,
-    { scale: 1.1 },
-    {
-      scale: 1,
-      ease: "power2.out",
-      scrollTrigger: imageReveal,
-    },
-  );
-  if (imageScaleTween.scrollTrigger) {
-    scrollTriggers.push(imageScaleTween.scrollTrigger);
-  }
-
-  const parallaxTween = gsap.fromTo(
-    inner,
-    { x: config.parallaxX[0], y: config.parallaxY[0] },
-    {
-      x: config.parallaxX[1],
-      y: config.parallaxY[1],
-      ease: "none",
-      scrollTrigger: {
-        trigger: panel,
-        start: "top bottom",
-        end: "bottom top",
-        scrub: true,
-        scroller,
-      },
-    },
-  );
-  if (parallaxTween.scrollTrigger) {
-    scrollTriggers.push(parallaxTween.scrollTrigger);
-  }
-
-  const textTween = gsap.fromTo(
-    textLines,
-    { y: 30, autoAlpha: 0 },
-    {
-      y: 0,
-      autoAlpha: 1,
-      stagger: 0.08,
-      ease: "power2.out",
-      scrollTrigger: {
-        trigger: panel,
-        start: "top 76%",
-        end: "top 46%",
-        scrub: 0.5,
-        scroller,
-      },
-    },
-  );
-  if (textTween.scrollTrigger) {
-    scrollTriggers.push(textTween.scrollTrigger);
-  }
-}
-
-function StoryVerticalLayout({
+function StoryReducedMotionLayout({
   sectionRef,
-  animate,
 }: {
   sectionRef?: React.RefObject<HTMLElement | null>;
-  animate: boolean;
 }) {
   const articleRefs = useRef<Array<HTMLElement | null>>([]);
 
   useLayoutEffect(() => {
     const articles = articleRefs.current.filter(Boolean) as HTMLElement[];
 
-    if (articles.length === 0) {
-      return;
-    }
-
-    if (!animate) {
-      articles.forEach((article, index) => {
-        setPanelAnimationState(article, STORY_PANELS[index].index, true, false);
-      });
-      return;
-    }
-
-    const scrollTriggers: ScrollTrigger[] = [];
-
     articles.forEach((article, index) => {
-      setPanelAnimationState(article, STORY_PANELS[index].index, false, false);
-      setupVerticalPanelRevealAnimations(
-        article,
-        STORY_PANELS[index].index,
-        scrollTriggers,
-      );
+      setPanelAnimationState(article, STORY_PANELS[index].index, true, false);
     });
-
-    const refresh = () => ScrollTrigger.refresh();
-    window.addEventListener("resize", refresh);
-    requestAnimationFrame(refresh);
-
-    return () => {
-      window.removeEventListener("resize", refresh);
-      scrollTriggers.forEach((trigger) => trigger.kill());
-    };
-  }, [animate]);
+  }, []);
 
   return (
     <section
@@ -565,52 +514,36 @@ function StoryVerticalLayout({
   );
 }
 
-export function LoveStorySection() {
-  const [useVerticalStory] = useState(() => {
-    if (typeof window === "undefined") {
-      return true;
-    }
+function updateStoryProgress(
+  progressItems: HTMLSpanElement[],
+  panels: HTMLElement[],
+  progress: number,
+) {
+  const activeIndex = Math.min(
+    Math.round(progress * (panels.length - 1)),
+    panels.length - 1,
+  );
 
-    return !shouldUseHorizontalStoryScroll();
+  progressItems.forEach((item, index) => {
+    const isActive = index === activeIndex;
+    gsap.to(item, {
+      opacity: isActive ? 1 : 0.4,
+      color: isActive ? "#d4b87a" : "rgba(230, 223, 211, 0.55)",
+      duration: 0.25,
+      overwrite: true,
+    });
   });
+}
 
-  const [reducedMotion] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
-    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  });
-
-  const sectionRef = useRef<HTMLElement>(null);
+function StoryHorizontalPinnedLayout({
+  sectionRef,
+}: {
+  sectionRef: React.RefObject<HTMLElement | null>;
+}) {
   const pinRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef<Array<HTMLDivElement | null>>([]);
   const progressRefs = useRef<Array<HTMLSpanElement | null>>([]);
-
-  useLayoutEffect(() => {
-    const section = sectionRef.current;
-    if (!section) {
-      return;
-    }
-
-    const scroller = getScroller();
-    const chromeTrigger = ScrollTrigger.create({
-      trigger: section,
-      start: "top 55%",
-      end: "bottom 45%",
-      scroller,
-      invalidateOnRefresh: true,
-      onEnter: () => setCornerNavColor("hero"),
-      onEnterBack: () => setCornerNavColor("hero"),
-      onLeave: () => setCornerNavColor("accent"),
-      onLeaveBack: () => setCornerNavColor("accent"),
-    });
-
-    return () => {
-      chromeTrigger.kill();
-    };
-  }, []);
 
   useLayoutEffect(() => {
     const section = sectionRef.current;
@@ -619,15 +552,7 @@ export function LoveStorySection() {
     const panels = panelRefs.current.filter(Boolean) as HTMLDivElement[];
     const progressItems = progressRefs.current.filter(Boolean) as HTMLSpanElement[];
 
-    if (!section) {
-      return;
-    }
-
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    if (useVerticalStory || prefersReducedMotion || !pin || !track || panels.length === 0) {
+    if (!section || !pin || !track || panels.length === 0) {
       return;
     }
 
@@ -659,20 +584,7 @@ export function LoveStorySection() {
         invalidateOnRefresh: true,
         pinReparent: false,
         onUpdate: (self) => {
-          const activeIndex = Math.min(
-            Math.round(self.progress * (panels.length - 1)),
-            panels.length - 1,
-          );
-
-          progressItems.forEach((item, index) => {
-            const isActive = index === activeIndex;
-            gsap.to(item, {
-              opacity: isActive ? 1 : 0.4,
-              color: isActive ? "#d4b87a" : "rgba(230, 223, 211, 0.55)",
-              duration: 0.25,
-              overwrite: true,
-            });
-          });
+          updateStoryProgress(progressItems, panels, self.progress);
         },
       },
     });
@@ -682,7 +594,7 @@ export function LoveStorySection() {
     }
 
     panels.forEach((panel, index) => {
-      setupPanelRevealAnimations(
+      setupHorizontalPanelRevealAnimations(
         panel,
         STORY_PANELS[index].index,
         horizontalTween,
@@ -690,9 +602,7 @@ export function LoveStorySection() {
       );
     });
 
-    const refresh = () => {
-      ScrollTrigger.refresh();
-    };
+    const refresh = () => ScrollTrigger.refresh();
 
     if (smoother) {
       refresh();
@@ -707,16 +617,7 @@ export function LoveStorySection() {
       horizontalTween.kill();
       scrollTriggers.forEach((trigger) => trigger.kill());
     };
-  }, [reducedMotion, useVerticalStory]);
-
-  if (useVerticalStory || reducedMotion) {
-    return (
-      <StoryVerticalLayout
-        sectionRef={sectionRef}
-        animate={useVerticalStory && !reducedMotion}
-      />
-    );
-  }
+  }, [sectionRef]);
 
   return (
     <section id="section-3" ref={sectionRef} className="relative overflow-x-hidden bg-primary">
@@ -746,4 +647,154 @@ export function LoveStorySection() {
       </div>
     </section>
   );
+}
+
+function StoryVerticalPinnedLayout({
+  sectionRef,
+}: {
+  sectionRef: React.RefObject<HTMLElement | null>;
+}) {
+  const pinRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const panelRefs = useRef<Array<HTMLDivElement | null>>([]);
+  const progressRefs = useRef<Array<HTMLSpanElement | null>>([]);
+
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
+    const pin = pinRef.current;
+    const track = trackRef.current;
+    const panels = panelRefs.current.filter(Boolean) as HTMLDivElement[];
+    const progressItems = progressRefs.current.filter(Boolean) as HTMLSpanElement[];
+
+    if (!section || !pin || !track || panels.length === 0) {
+      return;
+    }
+
+    panels.forEach((panel, index) =>
+      setPanelAnimationState(panel, STORY_PANELS[index].index, false, false),
+    );
+    gsap.set(progressItems, { opacity: 0.4, color: "rgba(230, 223, 211, 0.55)" });
+    gsap.set(progressItems[0], { opacity: 1, color: "#d4b87a" });
+
+    const scrollTriggers: ScrollTrigger[] = [];
+
+    const getScrollDistance = () =>
+      Math.max(track.scrollHeight - window.innerHeight, 0);
+
+    const verticalTween = gsap.to(track, {
+      y: () => -getScrollDistance(),
+      ease: "none",
+      scrollTrigger: {
+        trigger: section,
+        start: "top top",
+        end: () => `+=${getScrollDistance()}`,
+        pin,
+        scrub: 1,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+        pinReparent: false,
+        pinType: isTouchDevice() ? "fixed" : "transform",
+        onUpdate: (self) => {
+          updateStoryProgress(progressItems, panels, self.progress);
+        },
+      },
+    });
+
+    if (verticalTween.scrollTrigger) {
+      scrollTriggers.push(verticalTween.scrollTrigger);
+    }
+
+    panels.forEach((panel, index) => {
+      setupVerticalPanelRevealAnimations(
+        panel,
+        STORY_PANELS[index].index,
+        verticalTween,
+        scrollTriggers,
+      );
+    });
+
+    const refresh = () => ScrollTrigger.refresh();
+    requestAnimationFrame(refresh);
+    window.addEventListener("resize", refresh);
+
+    return () => {
+      window.removeEventListener("resize", refresh);
+      verticalTween.kill();
+      scrollTriggers.forEach((trigger) => trigger.kill());
+    };
+  }, [sectionRef]);
+
+  return (
+    <section id="section-3" ref={sectionRef} className="relative overflow-x-hidden bg-primary">
+      <div
+        ref={pinRef}
+        className="relative h-dvh w-full overflow-hidden bg-primary text-background"
+      >
+        <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 ${CONTENT_INSET}`}>
+          <StoryHeader />
+        </div>
+
+        <div ref={trackRef} className="flex h-full w-full flex-col will-change-transform">
+          {STORY_PANELS.map((panel, index) => (
+            <div
+              key={panel.index}
+              ref={(el) => {
+                panelRefs.current[index] = el;
+              }}
+              className={`h-dvh w-full shrink-0 ${CONTENT_INSET}`}
+            >
+              <PanelContent panel={panel} className="pt-28 md:pt-32" />
+            </div>
+          ))}
+        </div>
+
+        <ProgressIndicator progressRefs={progressRefs} />
+      </div>
+    </section>
+  );
+}
+
+export function LoveStorySection() {
+  const scrollAxis = useStoryScrollAxis();
+  const reducedMotion = useSyncExternalStore(
+    subscribeStoryScrollAxis,
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  );
+
+  const sectionRef = useRef<HTMLElement>(null);
+
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
+    if (!section) {
+      return;
+    }
+
+    const scroller = getScroller();
+    const chromeTrigger = ScrollTrigger.create({
+      trigger: section,
+      start: "top 55%",
+      end: "bottom 45%",
+      scroller,
+      invalidateOnRefresh: true,
+      onEnter: () => setCornerNavColor("hero"),
+      onEnterBack: () => setCornerNavColor("hero"),
+      onLeave: () => setCornerNavColor("accent"),
+      onLeaveBack: () => setCornerNavColor("accent"),
+    });
+
+    return () => {
+      chromeTrigger.kill();
+    };
+  }, []);
+
+  if (reducedMotion) {
+    return <StoryReducedMotionLayout sectionRef={sectionRef} />;
+  }
+
+  if (scrollAxis === "y") {
+    return <StoryVerticalPinnedLayout sectionRef={sectionRef} />;
+  }
+
+  return <StoryHorizontalPinnedLayout sectionRef={sectionRef} />;
 }

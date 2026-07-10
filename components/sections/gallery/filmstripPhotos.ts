@@ -13,12 +13,27 @@ export type GalleryRowConfig = {
   offsetClass: string;
   direction: "left" | "right";
   speed: number;
+  filmStock: string;
 };
 
-export const GALLERY_GAP = 40;
-export const MOBILE_GALLERY_GAP = 16;
+export const FRAME_GAP = 6;
+export const MOBILE_FRAME_GAP = 4;
+export const ROW_GAP = 10;
+export const MOBILE_ROW_GAP = 8;
+/** @deprecated Use FRAME_GAP — kept for imports that expect GALLERY_GAP */
+export const GALLERY_GAP = FRAME_GAP;
+export const MOBILE_GALLERY_GAP = MOBILE_FRAME_GAP;
 export const ROW_HEIGHT_RATIO = 0.22;
 export const MOBILE_ROW_HEIGHT_RATIO = 0.21;
+export const FILM_RAIL_HEIGHT = 11;
+
+export function getFilmstripRowHeight(apertureHeight: number) {
+  return apertureHeight + FILM_RAIL_HEIGHT * 2;
+}
+
+export function getFrameLabel(photoIndex: number) {
+  return `· ${photoIndex + 1}A ·`;
+}
 
 const ASPECT_WIDTH: Record<FilmstripAspect, number> = {
   "3/4": 3 / 4,
@@ -51,12 +66,25 @@ export function getRowHeight() {
   return Math.round(window.innerHeight * ratio);
 }
 
-export function getGalleryGap() {
+export function getFrameGap() {
   if (typeof window === "undefined") {
-    return GALLERY_GAP;
+    return FRAME_GAP;
   }
 
-  return isMobileGalleryViewport() ? MOBILE_GALLERY_GAP : GALLERY_GAP;
+  return isMobileGalleryViewport() ? MOBILE_FRAME_GAP : FRAME_GAP;
+}
+
+export function getRowGap() {
+  if (typeof window === "undefined") {
+    return ROW_GAP;
+  }
+
+  return isMobileGalleryViewport() ? MOBILE_ROW_GAP : ROW_GAP;
+}
+
+/** @deprecated Use getFrameGap */
+export function getGalleryGap() {
+  return getFrameGap();
 }
 
 export function getPhotoSize(aspect: FilmstripAspect, rowHeight: number) {
@@ -71,7 +99,8 @@ export const GALLERY_ROWS: GalleryRowConfig[] = [
     id: "row-1",
     direction: "left",
     speed: 1,
-    offsetClass: "pl-4 md:pl-16",
+    filmStock: "KODAK PORTRA 400",
+    offsetClass: "pl-2 md:pl-10",
     photos: [
       {
         id: "r1-01",
@@ -109,7 +138,8 @@ export const GALLERY_ROWS: GalleryRowConfig[] = [
     id: "row-2",
     direction: "right",
     speed: 0.82,
-    offsetClass: "pl-8 md:pl-24",
+    filmStock: "FUJICOLOR",
+    offsetClass: "pl-4 md:pl-14",
     photos: [
       {
         id: "r2-01",
@@ -147,7 +177,8 @@ export const GALLERY_ROWS: GalleryRowConfig[] = [
     id: "row-3",
     direction: "left",
     speed: 0.9,
-    offsetClass: "pl-12 md:pl-32",
+    filmStock: "SAFETY FILM",
+    offsetClass: "pl-6 md:pl-20",
     photos: [
       {
         id: "r3-01",

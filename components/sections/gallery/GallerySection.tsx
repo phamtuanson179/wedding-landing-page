@@ -20,19 +20,22 @@ import {
   shouldUsePinnedGallery,
 } from "@/lib/scroll/cornerNav";
 import {
-  GALLERY_GAP,
+  FRAME_GAP,
   GALLERY_ROWS,
-  getGalleryGap,
+  ROW_GAP,
+  getFrameGap,
+  getFrameLabel,
+  getRowGap,
   getLoopPhotos,
   getPhotoSize,
   getRowHeight,
   type FilmstripPhoto,
+  type GalleryRowConfig,
 } from "./filmstripPhotos";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const SSR_ROW_HEIGHT = 200;
-const HOVER_SHADOW = "0 24px 48px -12px rgba(26, 18, 12, 0.14)";
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -130,8 +133,7 @@ function animateLightboxClose(
 function resetPhotoHover(item: HTMLElement) {
   gsap.to(item, {
     scale: 1,
-    boxShadow: "0 0 0 rgba(0,0,0,0)",
-    duration: 0.45,
+    duration: 0.5,
     ease: "power2.out",
     overwrite: true,
   });
@@ -140,8 +142,7 @@ function resetPhotoHover(item: HTMLElement) {
 function highlightPhoto(item: HTMLElement) {
   gsap.to(item, {
     scale: 1.05,
-    boxShadow: HOVER_SHADOW,
-    duration: 0.45,
+    duration: 0.5,
     ease: "power2.out",
     overwrite: true,
   });
@@ -150,71 +151,122 @@ function highlightPhoto(item: HTMLElement) {
 function GalleryPhoto({
   photo,
   rowHeight,
+  photoIndex,
+  filmStock,
   onSelect,
 }: {
   photo: FilmstripPhoto;
   rowHeight: number;
+  photoIndex: number;
+  filmStock: string;
   onSelect: (photo: FilmstripPhoto) => void;
 }) {
   const itemRef = useRef<HTMLDivElement>(null);
-  const { width, height } = getPhotoSize(photo.aspect, rowHeight);
+  const { width } = getPhotoSize(photo.aspect, rowHeight);
 
   return (
-    <button
-      type="button"
-      aria-label={`Xem ảnh: ${photo.alt}`}
-      className="photo-item relative shrink-0 cursor-pointer border-0 bg-transparent p-0"
-      style={{ width, height }}
-      onMouseEnter={() => {
-        if (itemRef.current) {
-          highlightPhoto(itemRef.current);
-        }
-      }}
-      onMouseLeave={() => {
-        if (itemRef.current) {
-          resetPhotoHover(itemRef.current);
-        }
-      }}
-      onFocus={() => {
-        if (itemRef.current) {
-          highlightPhoto(itemRef.current);
-        }
-      }}
-      onBlur={() => {
-        if (itemRef.current) {
-          resetPhotoHover(itemRef.current);
-        }
-      }}
-      onClick={() => onSelect(photo)}
-    >
-      <div
-        ref={itemRef}
-        data-gallery-photo-item
-        className="relative h-full w-full origin-center overflow-hidden rounded-sm bg-foreground/5 will-change-transform"
+    <div className="filmstrip-frame" style={{ width, height: rowHeight }}>
+      <span className="filmstrip-frame__code filmstrip-frame__code--top">
+        {getFrameLabel(photoIndex)}
+      </span>
+
+      <button
+        type="button"
+        aria-label={`Xem ảnh: ${photo.alt}`}
+        className="filmstrip-frame__trigger"
+        style={{ width, height: rowHeight }}
+        onMouseEnter={() => {
+          if (itemRef.current) {
+            highlightPhoto(itemRef.current);
+          }
+        }}
+        onMouseLeave={() => {
+          if (itemRef.current) {
+            resetPhotoHover(itemRef.current);
+          }
+        }}
+        onFocus={() => {
+          if (itemRef.current) {
+            highlightPhoto(itemRef.current);
+          }
+        }}
+        onBlur={() => {
+          if (itemRef.current) {
+            resetPhotoHover(itemRef.current);
+          }
+        }}
+        onClick={() => onSelect(photo)}
       >
-        <Image
-          src={photo.src}
-          alt={photo.alt}
-          fill
-          loading="eager"
-          sizes="(max-width: 768px) 38vw, 28vw"
-          className="object-cover"
-          draggable={false}
-        />
+        <div
+          ref={itemRef}
+          data-gallery-photo-item
+          className="filmstrip-frame__aperture"
+        >
+          <Image
+            src={photo.src}
+            alt={photo.alt}
+            fill
+            loading="eager"
+            sizes="(max-width: 768px) 38vw, 28vw"
+            className="object-cover"
+            draggable={false}
+          />
+        </div>
+      </button>
+
+      <span className="filmstrip-frame__code filmstrip-frame__code--bottom">
+        {filmStock}
+      </span>
+    </div>
+  );
+}
+
+function FilmstripRow({
+  row,
+  rowHeight,
+  frameGap,
+  onSelect,
+}: {
+  row: GalleryRowConfig;
+  rowHeight: number;
+  frameGap: number;
+  onSelect: (photo: FilmstripPhoto) => void;
+}) {
+  const photos = getLoopPhotos(row.photos);
+
+  return (
+    <div className="filmstrip-row overflow-hidden" data-filmstrip-row>
+      <div
+        data-gallery-track
+        className={`filmstrip-row__track ${row.offsetClass}`}
+        style={{ gap: frameGap, height: rowHeight }}
+      >
+        {photos.map((photo, index) => (
+          <GalleryPhoto
+            key={photo.id}
+            photo={photo}
+            rowHeight={rowHeight}
+            photoIndex={index % row.photos.length}
+            filmStock={row.filmStock}
+            onSelect={onSelect}
+          />
+        ))}
       </div>
-    </button>
+    </div>
   );
 }
 
 function GalleryFallback({
   sectionRef,
   rowHeight,
-  galleryGap,
+  frameGap,
+  rowGap,
   onSelect,
 }: {
   sectionRef: React.RefObject<HTMLElement | null>;
   rowHeight: number;
-  galleryGap: number;
+  frameGap: number;
+  rowGap: number;
   onSelect: (photo: FilmstripPhoto) => void;
 }) {
   return (
@@ -232,18 +284,15 @@ function GalleryFallback({
           Album cưới
         </h2>
       </header>
-      <div className="space-y-10 overflow-x-auto">
+      <div className="flex flex-col overflow-x-auto" style={{ gap: rowGap }}>
         {GALLERY_ROWS.map((row) => (
-          <div key={row.id} className="flex" style={{ gap: galleryGap }}>
-            {row.photos.map((photo) => (
-              <GalleryPhoto
-                key={photo.id}
-                photo={photo}
-                rowHeight={rowHeight}
-                onSelect={onSelect}
-              />
-            ))}
-          </div>
+          <FilmstripRow
+            key={row.id}
+            row={row}
+            rowHeight={rowHeight}
+            frameGap={frameGap}
+            onSelect={onSelect}
+          />
         ))}
       </div>
     </section>
@@ -383,14 +432,16 @@ export function GallerySection() {
   });
 
   const [rowHeight, setRowHeight] = useState(SSR_ROW_HEIGHT);
-  const [galleryGap, setGalleryGap] = useState(GALLERY_GAP);
+  const [frameGap, setFrameGap] = useState(FRAME_GAP);
+  const [rowGap, setRowGap] = useState(ROW_GAP);
   const [isReady, setIsReady] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<FilmstripPhoto | null>(null);
 
   useLayoutEffect(() => {
     const updateGalleryMetrics = () => {
       setRowHeight(getRowHeight());
-      setGalleryGap(getGalleryGap());
+      setFrameGap(getFrameGap());
+      setRowGap(getRowGap());
     };
 
     updateGalleryMetrics();
@@ -424,9 +475,9 @@ export function GallerySection() {
       scrollTimeline = undefined;
 
       section
-        .querySelectorAll<HTMLElement>("[data-gallery-photo-item]")
+        .querySelectorAll<HTMLElement>("[data-gallery-photo-item], [data-filmstrip-row]")
         .forEach((item) => {
-          gsap.set(item, { clearProps: "skewX,transform" });
+          gsap.set(item, { clearProps: "skewX,y,transform" });
         });
     };
 
@@ -475,6 +526,9 @@ export function GallerySection() {
           track.querySelectorAll<HTMLElement>("[data-gallery-photo-item]"),
         ),
       );
+      const filmRows = Array.from(
+        section.querySelectorAll<HTMLElement>("[data-filmstrip-row]"),
+      );
 
       const getPinDistance = () => {
         const distances = tracks.map(getTrackDistance);
@@ -517,24 +571,31 @@ export function GallerySection() {
           anticipatePin: 1,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
-            if (!shouldUseGallerySkew()) {
-              return;
-            }
-
             const velocity = self.getVelocity();
-            const skewAmount = gsap.utils.clamp(-4.5, 4.5, velocity * 0.008);
+            const jitterY = gsap.utils.clamp(-2, 2, velocity * 0.0025);
 
-            GALLERY_ROWS.forEach((row, index) => {
-              const skew =
-                row.direction === "left" ? skewAmount : -skewAmount;
-
-              gsap.to(rowItems[index], {
-                skewX: skew,
-                duration: 0.35,
-                ease: "power2.out",
-                overwrite: "auto",
-              });
+            gsap.to(filmRows, {
+              y: jitterY,
+              duration: 0.22,
+              ease: "power2.out",
+              overwrite: "auto",
             });
+
+            if (shouldUseGallerySkew()) {
+              const skewAmount = gsap.utils.clamp(-2.5, 2.5, velocity * 0.006);
+
+              GALLERY_ROWS.forEach((row, index) => {
+                const skew =
+                  row.direction === "left" ? skewAmount : -skewAmount;
+
+                gsap.to(rowItems[index], {
+                  skewX: skew,
+                  duration: 0.35,
+                  ease: "power2.out",
+                  overwrite: "auto",
+                });
+              });
+            }
 
             if (skewResetTimer) {
               window.clearTimeout(skewResetTimer);
@@ -545,6 +606,12 @@ export function GallerySection() {
                 skewX: 0,
                 duration: 0.65,
                 ease: "elastic.out(1, 0.45)",
+                overwrite: true,
+              });
+              gsap.to(filmRows, {
+                y: 0,
+                duration: 0.55,
+                ease: "elastic.out(1, 0.5)",
                 overwrite: true,
               });
             }, 90);
@@ -598,7 +665,7 @@ export function GallerySection() {
       cleanup();
       setGalleryChromeVisible(true);
     };
-  }, [useSimpleGallery, rowHeight, galleryGap, isReady]);
+  }, [useSimpleGallery, rowHeight, frameGap, rowGap, isReady]);
 
   const openLightbox = useCallback((photo: FilmstripPhoto) => {
     setSelectedPhoto(photo);
@@ -677,7 +744,8 @@ export function GallerySection() {
         <GalleryFallback
           sectionRef={sectionRef}
           rowHeight={rowHeight}
-          galleryGap={galleryGap}
+          frameGap={frameGap}
+          rowGap={rowGap}
           onSelect={openLightbox}
         />
         {lightboxPortal}
@@ -709,25 +777,16 @@ export function GallerySection() {
 
           <div
             className="mt-auto flex flex-col justify-end pb-6 md:pb-12 max-md:mt-0 max-md:flex-1 max-md:justify-end max-md:pb-12 max-md:pt-5"
-            style={{ gap: galleryGap }}
+            style={{ gap: rowGap }}
           >
             {GALLERY_ROWS.map((row) => (
-              <div key={row.id} className="overflow-hidden">
-                <div
-                  data-gallery-track
-                  className={`flex w-max items-center will-change-transform ${row.offsetClass}`}
-                  style={{ gap: galleryGap, height: rowHeight }}
-                >
-                  {getLoopPhotos(row.photos).map((photo) => (
-                    <GalleryPhoto
-                      key={photo.id}
-                      photo={photo}
-                      rowHeight={rowHeight}
-                      onSelect={openLightbox}
-                    />
-                  ))}
-                </div>
-              </div>
+              <FilmstripRow
+                key={row.id}
+                row={row}
+                rowHeight={rowHeight}
+                frameGap={frameGap}
+                onSelect={openLightbox}
+              />
             ))}
           </div>
         </div>

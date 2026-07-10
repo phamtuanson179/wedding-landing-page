@@ -136,9 +136,14 @@ export function setScrollProgressColor(theme: "accent" | "beige") {
   bar.classList.toggle("bg-background", theme === "beige");
 }
 
+export function updateScrollProgressTheme() {
+  const thankYouIndex = SECTION_IDS.indexOf("section-6");
+  const currentIndex = getCurrentSectionIndex();
+  setScrollProgressColor(currentIndex >= thankYouIndex ? "beige" : "accent");
+}
+
 export function setFinaleChrome(active: boolean) {
   setCornerNavColor(active ? "hero" : "accent");
-  setScrollProgressColor(active ? "beige" : "accent");
 }
 
 export function ensureDesktopCornerChromeVisible() {
@@ -242,7 +247,6 @@ export function setGalleryChromeVisible(visible: boolean) {
   if (!visible) {
     const targets = [
       ...cornerChrome,
-      scrollTrack,
       scrollPolygon,
       storyProgress,
     ].filter(Boolean) as HTMLElement[];

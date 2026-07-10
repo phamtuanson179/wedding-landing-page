@@ -34,6 +34,99 @@ gsap.registerPlugin(ScrollTrigger);
 const SSR_ROW_HEIGHT = 200;
 const HOVER_SHADOW = "0 24px 48px -12px rgba(26, 18, 12, 0.14)";
 
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function animateLightboxOpen(
+  backdrop: HTMLElement,
+  backdropImage: HTMLElement,
+  panel: HTMLElement,
+  reducedMotion: boolean,
+) {
+  if (reducedMotion) {
+    gsap.set(backdrop, { autoAlpha: 1 });
+    gsap.set(backdropImage, { scale: 1.05 });
+    gsap.set(panel, { autoAlpha: 1, y: 0, scale: 1 });
+    return null;
+  }
+
+  gsap.set(backdrop, { autoAlpha: 0 });
+  gsap.set(backdropImage, { scale: 1.14 });
+  gsap.set(panel, { autoAlpha: 0, y: 20, scale: 0.95 });
+
+  return gsap
+    .timeline()
+    .to(backdrop, {
+      autoAlpha: 1,
+      duration: 0.6,
+      ease: "power2.out",
+    })
+    .to(
+      backdropImage,
+      {
+        scale: 1.05,
+        duration: 0.95,
+        ease: "power2.out",
+      },
+      0,
+    )
+    .to(
+      panel,
+      {
+        autoAlpha: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.78,
+        ease: "power3.out",
+      },
+      "-=0.42",
+    );
+}
+
+function animateLightboxClose(
+  backdrop: HTMLElement,
+  backdropImage: HTMLElement,
+  panel: HTMLElement,
+  reducedMotion: boolean,
+  onComplete: () => void,
+) {
+  if (reducedMotion) {
+    gsap.set([backdrop, panel], { autoAlpha: 0 });
+    gsap.set(backdropImage, { scale: 1.05 });
+    onComplete();
+    return null;
+  }
+
+  return gsap
+    .timeline({ onComplete })
+    .to(panel, {
+      autoAlpha: 0,
+      y: 14,
+      scale: 0.97,
+      duration: 0.42,
+      ease: "power2.inOut",
+    })
+    .to(
+      backdropImage,
+      {
+        scale: 1.1,
+        duration: 0.48,
+        ease: "power2.inOut",
+      },
+      "-=0.18",
+    )
+    .to(
+      backdrop,
+      {
+        autoAlpha: 0,
+        duration: 0.5,
+        ease: "power2.inOut",
+      },
+      "-=0.28",
+    );
+}
+
 function resetPhotoHover(item: HTMLElement) {
   gsap.to(item, {
     scale: 1,
@@ -157,6 +250,87 @@ function GalleryFallback({
   );
 }
 
+function GalleryLightboxPortal({
+  photo,
+  lightboxRef,
+  backdropImageRef,
+  panelRef,
+  onClose,
+}: {
+  photo: FilmstripPhoto;
+  lightboxRef: React.RefObject<HTMLDivElement | null>;
+  backdropImageRef: React.RefObject<HTMLDivElement | null>;
+  panelRef: React.RefObject<HTMLDivElement | null>;
+  onClose: () => void;
+}) {
+  if (typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      ref={lightboxRef}
+      className="fixed inset-0 z-[80] overflow-hidden"
+      style={{ opacity: 0, visibility: "hidden" }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Xem ảnh phóng to"
+      onClick={onClose}
+    >
+      <div className="pointer-events-none absolute inset-0" aria-hidden>
+        <div
+          ref={backdropImageRef}
+          className="absolute inset-[-12%] origin-center will-change-transform"
+        >
+          <Image
+            src={photo.src}
+            alt=""
+            fill
+            sizes="100vw"
+            className="object-cover blur-xl md:blur-2xl"
+            priority
+          />
+        </div>
+        <div className="absolute inset-0 bg-black/45" />
+      </div>
+
+      <div className="relative flex h-full items-center justify-center p-5 md:p-10">
+        <div
+          ref={panelRef}
+          className="relative w-full max-w-5xl will-change-transform"
+          onClick={(event) => event.stopPropagation()}
+          onDoubleClick={onClose}
+        >
+          <button
+            type="button"
+            aria-label="Đóng ảnh"
+            onClick={onClose}
+            className="absolute -top-11 right-0 z-10 cursor-pointer text-[10px] uppercase tracking-[0.22em] text-background/80 transition-colors hover:text-background md:-top-12"
+          >
+            Đóng
+          </button>
+
+          <div className="relative mx-auto h-[min(72vh,40rem)] w-full max-w-4xl overflow-hidden shadow-[0_28px_80px_rgba(0,0,0,0.38)] md:h-[min(80vh,44rem)]">
+            <Image
+              src={photo.src}
+              alt={photo.alt}
+              fill
+              sizes="(max-width: 768px) 100vw, 1024px"
+              className="object-cover"
+              priority
+            />
+          </div>
+
+          <p className="mt-4 text-center text-[10px] uppercase tracking-[0.2em] text-background/60">
+            Click ngoài hoặc double-click để đóng
+          </p>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 function syncGalleryChrome(active: boolean) {
   setGalleryChromeVisible(!active);
 }
@@ -196,6 +370,9 @@ export function GallerySection() {
   const sectionRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
   const lightboxRef = useRef<HTMLDivElement>(null);
+  const lightboxBackdropImageRef = useRef<HTMLDivElement>(null);
+  const lightboxPanelRef = useRef<HTMLDivElement>(null);
+  const lightboxTweenRef = useRef<gsap.core.Timeline | null>(null);
 
   const [useSimpleGallery] = useState(() => {
     if (typeof window === "undefined") {
@@ -429,17 +606,22 @@ export function GallerySection() {
 
   const closeLightbox = useCallback(() => {
     const lightbox = lightboxRef.current;
-    if (!lightbox) {
+    const backdropImage = lightboxBackdropImageRef.current;
+    const panel = lightboxPanelRef.current;
+
+    if (!lightbox || !backdropImage || !panel) {
       setSelectedPhoto(null);
       return;
     }
 
-    gsap.to(lightbox, {
-      autoAlpha: 0,
-      duration: 0.3,
-      ease: "power2.in",
-      onComplete: () => setSelectedPhoto(null),
-    });
+    lightboxTweenRef.current?.kill();
+    lightboxTweenRef.current = animateLightboxClose(
+      lightbox,
+      backdropImage,
+      panel,
+      prefersReducedMotion(),
+      () => setSelectedPhoto(null),
+    );
   }, []);
 
   useLayoutEffect(() => {
@@ -448,14 +630,19 @@ export function GallerySection() {
     }
 
     const lightbox = lightboxRef.current;
-    if (!lightbox) {
+    const backdropImage = lightboxBackdropImageRef.current;
+    const panel = lightboxPanelRef.current;
+
+    if (!lightbox || !backdropImage || !panel) {
       return;
     }
 
-    gsap.fromTo(
+    lightboxTweenRef.current?.kill();
+    lightboxTweenRef.current = animateLightboxOpen(
       lightbox,
-      { autoAlpha: 0 },
-      { autoAlpha: 1, duration: 0.3, ease: "power2.out" },
+      backdropImage,
+      panel,
+      prefersReducedMotion(),
     );
   }, [selectedPhoto]);
 
@@ -474,14 +661,27 @@ export function GallerySection() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedPhoto, closeLightbox]);
 
+  const lightboxPortal = selectedPhoto ? (
+    <GalleryLightboxPortal
+      photo={selectedPhoto}
+      lightboxRef={lightboxRef}
+      backdropImageRef={lightboxBackdropImageRef}
+      panelRef={lightboxPanelRef}
+      onClose={closeLightbox}
+    />
+  ) : null;
+
   if (useSimpleGallery) {
     return (
-      <GalleryFallback
-        sectionRef={sectionRef}
-        rowHeight={rowHeight}
-        galleryGap={galleryGap}
-        onSelect={openLightbox}
-      />
+      <>
+        <GalleryFallback
+          sectionRef={sectionRef}
+          rowHeight={rowHeight}
+          galleryGap={galleryGap}
+          onSelect={openLightbox}
+        />
+        {lightboxPortal}
+      </>
     );
   }
 
@@ -498,7 +698,7 @@ export function GallerySection() {
           ref={pinRef}
           className="relative flex h-dvh min-h-dvh flex-col overflow-hidden"
         >
-          <header className="pointer-events-none absolute top-10 left-6 z-20 md:top-20 md:left-16">
+          <header className="pointer-events-none relative z-20 w-full shrink-0 px-6 pt-10 md:absolute md:top-20 md:left-16 md:w-auto md:px-0 md:pt-0">
             <p className="text-[9px] uppercase tracking-[0.28em] text-foreground/45 md:text-[10px] md:tracking-[0.32em]">
               Gallery
             </p>
@@ -508,7 +708,7 @@ export function GallerySection() {
           </header>
 
           <div
-            className="mt-auto flex flex-col justify-end pb-6 md:pb-12"
+            className="mt-auto flex flex-col justify-end pb-6 md:pb-12 max-md:mt-0 max-md:flex-1 max-md:justify-end max-md:pb-12 max-md:pt-5"
             style={{ gap: galleryGap }}
           >
             {GALLERY_ROWS.map((row) => (
@@ -533,50 +733,7 @@ export function GallerySection() {
         </div>
       </section>
 
-      {typeof document !== "undefined" && selectedPhoto
-        ? createPortal(
-            <div
-              ref={lightboxRef}
-              className="fixed inset-0 z-[80] flex items-center justify-center bg-background/94 p-6 backdrop-blur-sm md:p-10"
-              style={{ opacity: 0, visibility: "hidden" }}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Xem ảnh phóng to"
-              onClick={closeLightbox}
-            >
-              <div
-                className="relative max-h-[88vh] w-full max-w-4xl"
-                onClick={(event) => event.stopPropagation()}
-                onDoubleClick={closeLightbox}
-              >
-                <button
-                  type="button"
-                  aria-label="Đóng ảnh"
-                  onClick={closeLightbox}
-                  className="absolute -top-12 right-0 cursor-pointer text-[10px] uppercase tracking-[0.22em] text-foreground/70 transition-colors hover:text-foreground md:-top-14"
-                >
-                  Đóng
-                </button>
-
-                <div className="relative aspect-[4/5] w-full md:aspect-[3/2]">
-                  <Image
-                    src={selectedPhoto.src}
-                    alt={selectedPhoto.alt}
-                    fill
-                    sizes="(max-width: 768px) 100vw, 896px"
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-
-                <p className="mt-4 text-center text-xs text-foreground/55">
-                  Click ngoài hoặc double-click để đóng
-                </p>
-              </div>
-            </div>,
-            document.body,
-          )
-        : null}
+      {lightboxPortal}
     </>
   );
 }

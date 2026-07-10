@@ -265,7 +265,7 @@ export function ThankYouSection() {
     const scroller = getScroller();
     const chromeTrigger = ScrollTrigger.create({
       trigger: section,
-      start: "top bottom",
+      start: "top 55%",
       end: "bottom top",
       scroller,
       invalidateOnRefresh: true,

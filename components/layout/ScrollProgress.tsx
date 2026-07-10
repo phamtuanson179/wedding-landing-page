@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
+import { updateScrollProgressTheme } from "@/lib/scroll/cornerNav";
 
 /**
  * Get the scroll progress using the ScrollSmoother instance
@@ -30,11 +31,13 @@ export function ScrollProgress() {
     const updateProgress = () => {
       const ratio = getScrollProgress();
       progress.style.transform = `translateY(${(ratio - 1) * 100}%)`;
+      updateScrollProgressTheme();
     };
 
     const onSmootherUpdate = (event: Event) => {
       const ratio = (event as CustomEvent<number>).detail;
       progress.style.transform = `translateY(${(ratio - 1) * 100}%)`;
+      updateScrollProgressTheme();
     };
 
     updateProgress();

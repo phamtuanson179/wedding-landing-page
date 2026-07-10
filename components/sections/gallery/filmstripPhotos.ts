@@ -18,7 +18,7 @@ export type GalleryRowConfig = {
 export const GALLERY_GAP = 40;
 export const MOBILE_GALLERY_GAP = 16;
 export const ROW_HEIGHT_RATIO = 0.22;
-export const MOBILE_ROW_HEIGHT_RATIO = 0.17;
+export const MOBILE_ROW_HEIGHT_RATIO = 0.21;
 
 const ASPECT_WIDTH: Record<FilmstripAspect, number> = {
   "3/4": 3 / 4,

@@ -219,7 +219,11 @@ function QrPanel({ account }: { account: BankAccount }) {
               type="button"
               onClick={copyAccountNo}
               aria-live="polite"
-              className="cursor-pointer border border-background/45 px-2.5 py-0.5 text-[9px] uppercase tracking-[0.16em] text-[#d4b87a] transition-colors hover:border-[#d4b87a] hover:text-background md:px-3 md:py-1 md:text-[10px] md:tracking-[0.18em]"
+              className={`cursor-pointer border px-2.5 py-0.5 text-[9px] uppercase tracking-[0.16em] transition-colors md:px-3 md:py-1 md:text-[10px] md:tracking-[0.18em] ${
+                copied
+                  ? "border-[#f5c842] bg-[#f5c842] text-primary"
+                  : "border-background/45 text-[#d4b87a] hover:border-[#d4b87a] hover:text-background"
+              }`}
             >
               {copied ? "Đã sao chép" : "Sao chép"}
             </button>

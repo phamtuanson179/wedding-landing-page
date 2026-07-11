@@ -1,6 +1,7 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { getScroller, setCornerNavColor } from "@/lib/scroll/cornerNav";
@@ -36,22 +37,24 @@ function MapsModal({
   open,
   onClose,
   mapsQuery,
+  mapsUrl,
 }: {
   open: boolean;
   onClose: () => void;
   mapsQuery: string;
+  mapsUrl: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLButtonElement>(null);
 
   useLayoutEffect(() => {
-    const panel = panelRef.current;
-    const backdrop = backdropRef.current;
-    if (!panel || !backdrop) {
+    if (!open) {
       return;
     }
 
-    if (!open) {
+    const panel = panelRef.current;
+    const backdrop = backdropRef.current;
+    if (!panel || !backdrop) {
       return;
     }
 
@@ -85,6 +88,27 @@ function MapsModal({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, onClose]);
+
   const handleClose = () => {
     const panel = panelRef.current;
     const backdrop = backdropRef.current;
@@ -109,15 +133,15 @@ function MapsModal({
       );
   };
 
-  if (!open) {
+  if (!open || typeof document === "undefined") {
     return null;
   }
 
-  const embedSrc = `https://www.google.com/maps?q=${encodeURIComponent(mapsQuery)}&output=embed`;
+  const embedSrc = `https://maps.google.com/maps?q=${encodeURIComponent(mapsQuery)}&hl=vi&z=15&output=embed`;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4 md:p-8"
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4 md:p-8"
       role="dialog"
       aria-modal="true"
       aria-label="Bản đồ địa điểm cưới"
@@ -134,29 +158,40 @@ function MapsModal({
         ref={panelRef}
         className="relative z-10 flex h-[min(82vh,720px)] w-full max-w-4xl flex-col overflow-hidden border border-background/20 bg-[#111] shadow-2xl"
       >
-        <div className="flex items-center justify-between border-b border-background/10 px-5 py-4">
-          <p className="text-sm uppercase tracking-[0.24em] text-background/70">
-            Google Maps
+        <div className="flex items-center justify-between gap-3 border-b border-background/10 px-3 py-3 md:px-5 md:py-4">
+          <p className="shrink-0 whitespace-nowrap text-[10px] uppercase tracking-[0.18em] text-background/70 md:text-sm md:tracking-[0.24em]">
+            Bản đồ
           </p>
-          <button
-            type="button"
-            onClick={handleClose}
-            className="cursor-pointer border border-background/30 px-3 py-1 text-xs uppercase tracking-[0.2em] text-background/80 transition-colors hover:border-background hover:text-background"
-          >
-            Đóng
-          </button>
+          <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
+            <a
+              href={mapsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="cursor-pointer whitespace-nowrap border border-background/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-background/80 transition-colors hover:border-background hover:text-background md:px-3 md:text-xs md:tracking-[0.2em]"
+            >
+              Mở Maps
+            </a>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="cursor-pointer whitespace-nowrap border border-background/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-background/80 transition-colors hover:border-background hover:text-background md:px-3 md:text-xs md:tracking-[0.2em]"
+            >
+              Đóng
+            </button>
+          </div>
         </div>
 
         <iframe
           title="Bản đồ địa điểm cưới"
           src={embedSrc}
           className="h-full w-full border-0"
-          loading="lazy"
+          loading="eager"
           referrerPolicy="no-referrer-when-downgrade"
           allowFullScreen
         />
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -282,8 +317,8 @@ export function WeddingSection() {
     const scroller = getScroller();
     const chromeTrigger = ScrollTrigger.create({
       trigger: section,
-      start: "top 55%",
-      end: "bottom 45%",
+      start: "top 50%",
+      end: "bottom 50%",
       scroller,
       invalidateOnRefresh: true,
       onEnter: () => setCornerNavColor("hero"),
@@ -378,7 +413,7 @@ export function WeddingSection() {
         className="relative flex h-dvh min-h-dvh flex-col overflow-hidden bg-[#0a0a0a] text-background"
       >
         <div
-          className={`mx-auto flex h-full w-full max-w-7xl flex-col justify-between py-10 md:py-14 ${CONTENT_INSET}`}
+          className={`mx-auto flex h-full w-full max-w-7xl flex-col justify-between pt-6 pb-[calc(2rem+var(--section-nav-height,0px))] md:pt-8 md:pb-[calc(2.5rem+var(--section-nav-height,0px))] ${CONTENT_INSET}`}
         >
           <div className="flex min-h-0 flex-1 flex-col justify-center">
             <ScheduleRow
@@ -416,7 +451,7 @@ export function WeddingSection() {
 
           <div
             ref={venueRef}
-            className="grid shrink-0 grid-cols-2 items-end gap-6 pt-8 md:pt-10"
+            className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,100px)] items-end gap-6 pt-8 md:pt-10"
           >
             <div className="max-w-md">
               <h3 className="font-display text-[clamp(1.5rem,4vw,2.75rem)] leading-tight text-background">
@@ -460,6 +495,7 @@ export function WeddingSection() {
         open={mapsOpen}
         onClose={() => setMapsOpen(false)}
         mapsQuery={WEDDING.venue.mapsQuery}
+        mapsUrl={WEDDING.venue.mapsUrl}
       />
     </>
   );

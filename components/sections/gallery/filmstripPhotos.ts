@@ -1,3 +1,5 @@
+import { getResolvedSectionNavHeightPx } from "@/lib/scroll/sectionNav";
+
 export type FilmstripAspect = "3/4" | "1/1" | "16/9" | "4/5" | "3/2";
 
 export type FilmstripPhoto = {
@@ -19,12 +21,11 @@ export type GalleryRowConfig = {
 export const FRAME_GAP = 6;
 export const MOBILE_FRAME_GAP = 4;
 export const ROW_GAP = 10;
-export const MOBILE_ROW_GAP = 8;
+export const MOBILE_ROW_GAP = 6;
 /** @deprecated Use FRAME_GAP — kept for imports that expect GALLERY_GAP */
 export const GALLERY_GAP = FRAME_GAP;
 export const MOBILE_GALLERY_GAP = MOBILE_FRAME_GAP;
 export const ROW_HEIGHT_RATIO = 0.22;
-export const MOBILE_ROW_HEIGHT_RATIO = 0.21;
 export const FILM_RAIL_HEIGHT = 11;
 
 export function getFilmstripRowHeight(apertureHeight: number) {
@@ -54,16 +55,46 @@ function isMobileGalleryViewport() {
   return window.matchMedia("(max-width: 767px)").matches;
 }
 
-export function getRowHeight() {
+export function getSectionViewportHeight() {
+  if (typeof window === "undefined") {
+    return 800;
+  }
+
+  return Math.max(0, window.innerHeight - getResolvedSectionNavHeightPx());
+}
+
+const MOBILE_GALLERY_ROW_COUNT = 3;
+/** Don't fill the whole stack — leave slack so the last rail clears the nav. */
+const MOBILE_ROW_HEIGHT_FILL = 0.72;
+
+/**
+ * Aperture height for one filmstrip row.
+ * Pass `stackHeight` (measured filmstrip stack clientHeight) on mobile so
+ * rows always fit the real layout instead of estimated viewport math.
+ */
+export function getRowHeight(stackHeight?: number) {
   if (typeof window === "undefined") {
     return 200;
   }
 
-  const ratio = isMobileGalleryViewport()
-    ? MOBILE_ROW_HEIGHT_RATIO
-    : ROW_HEIGHT_RATIO;
+  if (isMobileGalleryViewport() && typeof stackHeight === "number" && stackHeight > 0) {
+    const gaps = getRowGap() * (MOBILE_GALLERY_ROW_COUNT - 1);
+    const rails = FILM_RAIL_HEIGHT * 2 * MOBILE_GALLERY_ROW_COUNT;
+    const usable = stackHeight - gaps - rails;
+    const fitted = Math.floor(
+      (usable / MOBILE_GALLERY_ROW_COUNT) * MOBILE_ROW_HEIGHT_FILL,
+    );
 
-  return Math.round(window.innerHeight * ratio);
+    return Math.max(52, fitted);
+  }
+
+  const available = getSectionViewportHeight();
+
+  if (isMobileGalleryViewport()) {
+    return Math.max(52, Math.round(available * 0.12));
+  }
+
+  return Math.round(available * ROW_HEIGHT_RATIO);
 }
 
 export function getFrameGap() {

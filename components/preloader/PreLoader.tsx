@@ -12,11 +12,11 @@ import { dispatchHeroEntranceStart, HERO_ENTRANCE_COMPLETE } from "@/components/
 import {
   ensureCornerChromeVisible,
   preparePreloaderChrome,
-  scrollToNextSection,
   setCornerNavColor,
 } from "@/lib/scroll/cornerNav";
 import { setPreloaderPolygonAnimating } from "@/lib/preloader/preloaderState";
 import { playBackgroundMusicWithSound } from "@/lib/audio/backgroundMusic";
+import { scrollToNextSection } from "@/lib/scroll/sectionNav";
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
@@ -518,7 +518,7 @@ export function PreLoader() {
         <div
           ref={polygonWrapperRef}
           data-scroll-polygon
-          className={`invisible fixed bottom-8 right-8 size-22 [backface-visibility:visible] lg:bottom-16 lg:right-16 ${
+          className={`invisible fixed bottom-[calc(var(--section-nav-height,0px)+1.25rem)] right-5 size-14 [backface-visibility:visible] md:bottom-12 md:right-8 md:size-22 lg:bottom-20 lg:right-16 ${
             isInteractive ? "pointer-events-auto" : "pointer-events-none"
           }`}
         >

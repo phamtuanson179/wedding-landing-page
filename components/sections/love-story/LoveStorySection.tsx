@@ -227,31 +227,6 @@ function PanelContent({
   );
 }
 
-function ProgressIndicator({
-  progressRefs,
-}: {
-  progressRefs: React.RefObject<Array<HTMLSpanElement | null>>;
-}) {
-  return (
-    <div
-      data-story-progress
-      className="pointer-events-none absolute inset-x-0 bottom-8 z-30 flex items-center justify-center gap-5 text-xs uppercase tracking-[0.28em] md:bottom-10"
-    >
-      {STORY_PANELS.map((panel, index) => (
-        <span
-          key={panel.index}
-          ref={(el) => {
-            progressRefs.current[index] = el;
-          }}
-          className={`${STORY_MUTED_CLASS} transition-[opacity,color] duration-300`}
-        >
-          {panel.index}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 function setPanelAnimationState(
   panel: HTMLElement,
   panelIndex: string,
@@ -314,21 +289,6 @@ function setupHorizontalPanelRevealAnimations(
     horizontalTween,
     scrollTriggers,
     "x",
-  );
-}
-
-function setupVerticalPanelRevealAnimations(
-  panel: HTMLElement,
-  panelIndex: StoryPanel["index"],
-  verticalTween: gsap.core.Tween,
-  scrollTriggers: ScrollTrigger[],
-) {
-  setupPinnedPanelRevealAnimations(
-    panel,
-    panelIndex,
-    verticalTween,
-    scrollTriggers,
-    "y",
   );
 }
 
@@ -514,25 +474,124 @@ function StoryReducedMotionLayout({
   );
 }
 
-function updateStoryProgress(
-  progressItems: HTMLSpanElement[],
-  panels: HTMLElement[],
-  progress: number,
-) {
-  const activeIndex = Math.min(
-    Math.round(progress * (panels.length - 1)),
-    panels.length - 1,
-  );
+function StoryMobileRevealLayout({
+  sectionRef,
+}: {
+  sectionRef: React.RefObject<HTMLElement | null>;
+}) {
+  const articleRefs = useRef<Array<HTMLElement | null>>([]);
 
-  progressItems.forEach((item, index) => {
-    const isActive = index === activeIndex;
-    gsap.to(item, {
-      opacity: isActive ? 1 : 0.4,
-      color: isActive ? "#d4b87a" : "rgba(230, 223, 211, 0.55)",
-      duration: 0.25,
-      overwrite: true,
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
+    const articles = articleRefs.current.filter(Boolean) as HTMLElement[];
+
+    if (!section || articles.length === 0) {
+      return;
+    }
+
+    const scrollTriggers: ScrollTrigger[] = [];
+
+    articles.forEach((article, index) => {
+      setPanelAnimationState(article, STORY_PANELS[index].index, false, false);
     });
-  });
+
+    articles.forEach((article, index) => {
+      const panel = STORY_PANELS[index];
+      const config = PANEL_ANIMATIONS[panel.index];
+      const mask = article.querySelector<HTMLElement>(".story-image-mask");
+      const inner = article.querySelector<HTMLElement>(".story-image-inner");
+      const label = article.querySelector<HTMLElement>(".story-text-label");
+      const title = article.querySelector<HTMLElement>(".story-text-title");
+      const desc = article.querySelector<HTMLElement>(".story-text-desc");
+      const date = article.querySelector<HTMLElement>(".story-text-date");
+      const textLines = [label, title, desc, date].filter(
+        Boolean,
+      ) as HTMLElement[];
+
+      if (!mask || !inner) {
+        return;
+      }
+
+      const timeline = gsap.timeline({
+        scrollTrigger: {
+          trigger: article,
+          start: "top 82%",
+          end: "top 36%",
+          toggleActions: "play none none reverse",
+          invalidateOnRefresh: true,
+        },
+      });
+
+      if (timeline.scrollTrigger) {
+        scrollTriggers.push(timeline.scrollTrigger);
+      }
+
+      timeline
+        .fromTo(
+          mask,
+          { clipPath: config.maskHidden },
+          {
+            clipPath: "inset(0% 0% 0% 0%)",
+            duration: 0.95,
+            ease: "power3.inOut",
+          },
+          0,
+        )
+        .fromTo(
+          inner,
+          { scale: 1.12 },
+          {
+            scale: 1,
+            duration: 0.95,
+            ease: "power3.out",
+          },
+          0,
+        )
+        .fromTo(
+          textLines,
+          { y: 28, autoAlpha: 0 },
+          {
+            y: 0,
+            autoAlpha: 1,
+            duration: 0.55,
+            stagger: 0.09,
+            ease: "power2.out",
+          },
+          0.28,
+        );
+    });
+
+    const refresh = () => ScrollTrigger.refresh();
+    requestAnimationFrame(refresh);
+
+    return () => {
+      scrollTriggers.forEach((trigger) => trigger.kill());
+    };
+  }, [sectionRef]);
+
+  return (
+    <section
+      id="section-3"
+      ref={sectionRef}
+      className="relative overflow-x-hidden bg-primary text-background"
+    >
+      <div className="px-6 pb-6 pt-10 md:px-24 lg:px-32">
+        <StoryHeader />
+      </div>
+
+      {STORY_PANELS.map((panel, index) => (
+        <article
+          key={panel.index}
+          ref={(element) => {
+            articleRefs.current[index] = element;
+          }}
+          className={`${CONTENT_INSET} border-t ${STORY_BORDER_CLASS} py-12`}
+        >
+          <PanelContent panel={panel} />
+        </article>
+      ))}
+    </section>
+  );
 }
 
 function StoryHorizontalPinnedLayout({
@@ -543,14 +602,12 @@ function StoryHorizontalPinnedLayout({
   const pinRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const panelRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const progressRefs = useRef<Array<HTMLSpanElement | null>>([]);
 
   useLayoutEffect(() => {
     const section = sectionRef.current;
     const pin = pinRef.current;
     const track = trackRef.current;
     const panels = panelRefs.current.filter(Boolean) as HTMLDivElement[];
-    const progressItems = progressRefs.current.filter(Boolean) as HTMLSpanElement[];
 
     if (!section || !pin || !track || panels.length === 0) {
       return;
@@ -562,8 +619,6 @@ function StoryHorizontalPinnedLayout({
     panels.forEach((panel, index) =>
       setPanelAnimationState(panel, STORY_PANELS[index].index, false, false),
     );
-    gsap.set(progressItems, { opacity: 0.4, color: "rgba(230, 223, 211, 0.55)" });
-    gsap.set(progressItems[0], { opacity: 1, color: "#d4b87a" });
 
     const scrollTriggers: ScrollTrigger[] = [];
 
@@ -584,9 +639,6 @@ function StoryHorizontalPinnedLayout({
         invalidateOnRefresh: true,
         pinReparent: false,
         pinType: isTouchDevice() ? "fixed" : "transform",
-        onUpdate: (self) => {
-          updateStoryProgress(progressItems, panels, self.progress);
-        },
       },
     });
 
@@ -627,7 +679,7 @@ function StoryHorizontalPinnedLayout({
         className="relative h-dvh w-full overflow-hidden bg-primary text-background"
       >
         <div
-          className={`pointer-events-none absolute inset-x-0 top-0 z-20 px-6 pt-14 md:px-24 md:pt-20 lg:px-32`}
+          className={`pointer-events-none absolute inset-x-0 top-0 z-20 px-6 pt-10 md:px-24 md:pt-14 lg:px-32`}
         >
           <StoryHeader />
         </div>
@@ -639,119 +691,12 @@ function StoryHorizontalPinnedLayout({
               ref={(el) => {
                 panelRefs.current[index] = el;
               }}
-              className="h-full w-full shrink-0 basis-full px-6 pb-24 pt-[8.75rem] md:px-24 md:pb-28 md:pt-40 lg:px-32"
+              className="h-full w-full shrink-0 basis-full px-6 pb-[calc(5rem+var(--section-nav-height,0px))] pt-[7.5rem] md:px-24 md:pb-[calc(5.5rem+var(--section-nav-height,0px))] md:pt-32 lg:px-32"
             >
               <PanelContent panel={panel} />
             </div>
           ))}
         </div>
-
-        <ProgressIndicator progressRefs={progressRefs} />
-      </div>
-    </section>
-  );
-}
-
-function StoryVerticalPinnedLayout({
-  sectionRef,
-}: {
-  sectionRef: React.RefObject<HTMLElement | null>;
-}) {
-  const pinRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const panelRefs = useRef<Array<HTMLDivElement | null>>([]);
-  const progressRefs = useRef<Array<HTMLSpanElement | null>>([]);
-
-  useLayoutEffect(() => {
-    const section = sectionRef.current;
-    const pin = pinRef.current;
-    const track = trackRef.current;
-    const panels = panelRefs.current.filter(Boolean) as HTMLDivElement[];
-    const progressItems = progressRefs.current.filter(Boolean) as HTMLSpanElement[];
-
-    if (!section || !pin || !track || panels.length === 0) {
-      return;
-    }
-
-    panels.forEach((panel, index) =>
-      setPanelAnimationState(panel, STORY_PANELS[index].index, false, false),
-    );
-    gsap.set(progressItems, { opacity: 0.4, color: "rgba(230, 223, 211, 0.55)" });
-    gsap.set(progressItems[0], { opacity: 1, color: "#d4b87a" });
-
-    const scrollTriggers: ScrollTrigger[] = [];
-
-    const getScrollDistance = () =>
-      Math.max(track.scrollHeight - window.innerHeight, 0);
-
-    const verticalTween = gsap.to(track, {
-      y: () => -getScrollDistance(),
-      ease: "none",
-      scrollTrigger: {
-        trigger: section,
-        start: "top top",
-        end: () => `+=${getScrollDistance()}`,
-        pin,
-        scrub: 1,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-        pinReparent: false,
-        pinType: isTouchDevice() ? "fixed" : "transform",
-        onUpdate: (self) => {
-          updateStoryProgress(progressItems, panels, self.progress);
-        },
-      },
-    });
-
-    if (verticalTween.scrollTrigger) {
-      scrollTriggers.push(verticalTween.scrollTrigger);
-    }
-
-    panels.forEach((panel, index) => {
-      setupVerticalPanelRevealAnimations(
-        panel,
-        STORY_PANELS[index].index,
-        verticalTween,
-        scrollTriggers,
-      );
-    });
-
-    const refresh = () => ScrollTrigger.refresh();
-    requestAnimationFrame(refresh);
-    window.addEventListener("resize", refresh);
-
-    return () => {
-      window.removeEventListener("resize", refresh);
-      verticalTween.kill();
-      scrollTriggers.forEach((trigger) => trigger.kill());
-    };
-  }, [sectionRef]);
-
-  return (
-    <section id="section-3" ref={sectionRef} className="relative overflow-x-hidden bg-primary">
-      <div
-        ref={pinRef}
-        className="relative h-dvh w-full overflow-hidden bg-primary text-background"
-      >
-        <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 ${CONTENT_INSET}`}>
-          <StoryHeader />
-        </div>
-
-        <div ref={trackRef} className="flex h-full w-full flex-col will-change-transform">
-          {STORY_PANELS.map((panel, index) => (
-            <div
-              key={panel.index}
-              ref={(el) => {
-                panelRefs.current[index] = el;
-              }}
-              className={`h-dvh w-full shrink-0 ${CONTENT_INSET}`}
-            >
-              <PanelContent panel={panel} className="pt-28 md:pt-32" />
-            </div>
-          ))}
-        </div>
-
-        <ProgressIndicator progressRefs={progressRefs} />
       </div>
     </section>
   );
@@ -776,8 +721,8 @@ export function LoveStorySection() {
     const scroller = getScroller();
     const chromeTrigger = ScrollTrigger.create({
       trigger: section,
-      start: "top 55%",
-      end: "bottom 45%",
+      start: "top 50%",
+      end: "bottom 50%",
       scroller,
       invalidateOnRefresh: true,
       onEnter: () => setCornerNavColor("hero"),
@@ -796,7 +741,7 @@ export function LoveStorySection() {
   }
 
   if (scrollAxis === "y") {
-    return <StoryVerticalPinnedLayout sectionRef={sectionRef} />;
+    return <StoryMobileRevealLayout sectionRef={sectionRef} />;
   }
 
   return <StoryHorizontalPinnedLayout sectionRef={sectionRef} />;

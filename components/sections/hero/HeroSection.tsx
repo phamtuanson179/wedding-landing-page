@@ -188,22 +188,10 @@ export function HeroSection() {
     const scroller = getScroller();
     const media = gsap.matchMedia();
 
-    const syncMobileChromeFromScroll = () => {
-      if (!isMobileViewport()) {
-        return;
-      }
-
-      const pastHero = hero.getBoundingClientRect().bottom <= 0;
-      setMobileCornerNavVisible(!pastHero);
-      if (pastHero) {
-        setCornerNavColor("accent");
-      }
-    };
-
     const heroTrigger = ScrollTrigger.create({
       trigger: hero,
       start: "top top",
-      end: "bottom top",
+      end: "bottom center",
       scroller,
       invalidateOnRefresh: true,
       onLeave: () => {
@@ -216,6 +204,18 @@ export function HeroSection() {
       },
     });
 
+    const syncMobileChromeFromScroll = () => {
+      if (!isMobileViewport()) {
+        return;
+      }
+
+      const pastHero =
+        hero.getBoundingClientRect().bottom <= window.innerHeight * 0.5;
+      setMobileCornerNavVisible(!pastHero);
+      if (pastHero) {
+        setCornerNavColor("accent");
+      }
+    };
     // Defer past-hero chrome sync until loading finishes — otherwise a mid-page
     // reload hides polygon + CornerLabels before PreLoader can show them.
     const stopWaitingForPreloader = whenPreloaderComplete(
@@ -339,7 +339,7 @@ export function HeroSection() {
   return (
     <section
       id="main"
-      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#2a2520]"
+      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#2a2520] pt-0 pb-[var(--section-nav-height,0px)]"
     >
       <div className="absolute inset-0 overflow-hidden">
         {HERO_IMAGES.map(({ src, position }, index) => (

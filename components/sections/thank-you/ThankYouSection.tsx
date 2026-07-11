@@ -265,7 +265,7 @@ export function ThankYouSection() {
     const scroller = getScroller();
     const chromeTrigger = ScrollTrigger.create({
       trigger: section,
-      start: "top 55%",
+      start: "top 50%",
       end: "bottom top",
       scroller,
       invalidateOnRefresh: true,
@@ -471,7 +471,7 @@ export function ThankYouSection() {
 
       <div
         ref={stageRef}
-        className={`relative z-10 mx-auto flex min-h-dvh w-full max-w-7xl flex-col items-center justify-center text-center md:h-full md:py-14 ${CONTENT_INSET}`}
+        className={`relative z-10 mx-auto flex min-h-dvh w-full max-w-7xl flex-col items-center justify-center pt-6 pb-[calc(1.5rem+var(--section-nav-height,0px))] text-center md:h-full md:pt-8 md:pb-[calc(2.5rem+var(--section-nav-height,0px))] ${CONTENT_INSET}`}
       >
         <div className="w-full max-w-3xl shrink-0">
           <header className="w-full">
@@ -488,9 +488,9 @@ export function ThankYouSection() {
               ref={messageRef}
               className="mt-3 text-xs leading-relaxed text-background/78 md:mt-5 md:text-base md:leading-7 font-light"
             >
-              Cảm ơn bạn đã dành thời gian đến chung vui và gửi những lời chúc
-              phúc ý nghĩa đến chúng mình. Sự hiện diện của bạn là món quà quý giá
-              nhất trong ngày trọng đại này.
+              Việc có mặt của mọi người chính là niềm vui lớn nhất của cô dâu
+              chú rể. Chúng mình rất mong được đón bạn đến chung vui và gửi
+              lời chúc phúc trong ngày trọng đại này.
             </p>
           </header>
 

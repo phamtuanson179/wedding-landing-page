@@ -15,6 +15,8 @@
   --primary: #800020;
   --background: #e6dfd3;
   --foreground: #1a1a1a;
+  /* 42px bar + iOS safe-area; SectionNav sets 0px while hidden. */
+  --section-nav-height: 0px;
 }
 
 @layer base {
@@ -179,5 +181,12 @@
       inset 0 0 24px rgba(0, 0, 0, 0.18);
     transform-origin: center center;
     will-change: transform;
+  }
+}
+
+@layer utilities {
+  /* Reserved for content clearance above the fixed section nav. */
+  .pb-section-nav {
+    padding-bottom: var(--section-nav-height, 0px);
   }
 }

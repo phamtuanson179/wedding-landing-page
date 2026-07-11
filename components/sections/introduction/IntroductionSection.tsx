@@ -361,7 +361,7 @@ export function IntroductionSection() {
       className="relative flex h-screen min-h-screen items-center overflow-hidden bg-background text-foreground"
     >
       <div
-        className={`relative mx-auto flex h-full w-full max-w-7xl flex-col justify-center py-8 md:py-10 ${CONTENT_INSET_X}`}
+        className={`relative mx-auto flex h-full w-full max-w-7xl flex-col justify-center pt-10 pb-[calc(1.5rem+var(--section-nav-height,0px))] md:pt-16 md:pb-[calc(2rem+var(--section-nav-height,0px))] ${CONTENT_INSET_X}`}
       >
         <header
           ref={headerRef}

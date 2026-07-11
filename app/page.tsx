@@ -3,6 +3,7 @@ import {
   BackgroundMusic,
   ScrollProgress,
   ScrollSmootherProvider,
+  SectionNav,
 } from "@/components/layout";
 import {
   GallerySection,
@@ -18,6 +19,7 @@ export default function Home() {
     <>
       <ScrollProgress />
       <BackgroundMusic />
+      <SectionNav />
 
       <ScrollSmootherProvider>
         <main>

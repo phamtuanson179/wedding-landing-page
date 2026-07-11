@@ -1,5 +1,4 @@
 import gsap from "gsap";
-import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { isPreloaderPolygonAnimating } from "@/lib/preloader/preloaderState";
 
 export const SECTION_IDS = [
@@ -40,7 +39,12 @@ export function shouldUsePinnedGallery() {
     return false;
   }
 
-  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return false;
+  }
+
+  // Pin + horizontal scrub is desktop-only — mobile uses vertical reveals.
+  return !isMobileViewport() && !isTouchDevice();
 }
 
 export function shouldUseGallerySkew() {
@@ -52,7 +56,12 @@ export function shouldUseHorizontalStoryScroll() {
     return false;
   }
 
-  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    return false;
+  }
+
+  // Horizontal story pin is desktop-only — mobile uses vertical scroll-reveals.
+  return !isMobileViewport() && !isTouchDevice();
 }
 
 export function getScroller() {
@@ -78,10 +87,6 @@ function getScrollProgressTrack() {
 
 function getScrollPolygon() {
   return document.querySelector<HTMLElement>("[data-scroll-polygon]");
-}
-
-function getStoryProgress() {
-  return document.querySelector<HTMLElement>("[data-story-progress]");
 }
 
 function isPreloaderActive() {
@@ -277,13 +282,11 @@ export function setGalleryChromeVisible(visible: boolean) {
   const cornerChrome = Array.from(getCornerChrome());
   const scrollTrack = getScrollProgressTrack();
   const scrollPolygon = getScrollPolygon();
-  const storyProgress = getStoryProgress();
 
   if (!visible) {
     const targets = [
       ...cornerChrome,
       scrollPolygon,
-      storyProgress,
     ].filter(Boolean) as HTMLElement[];
 
     gsap.set(targets, {
@@ -301,13 +304,6 @@ export function setGalleryChromeVisible(visible: boolean) {
         duration: 0.35,
         ease: "power2.out",
         overwrite: true,
-      });
-    }
-
-    if (storyProgress) {
-      gsap.set(storyProgress, {
-        autoAlpha: 1,
-        visibility: "visible",
       });
     }
 
@@ -335,17 +331,11 @@ export function setGalleryChromeVisible(visible: boolean) {
       overwrite: true,
     });
   }
-
-  if (storyProgress) {
-    gsap.set(storyProgress, {
-      autoAlpha: 1,
-      visibility: "visible",
-    });
-  }
 }
 
 function getCurrentSectionIndex() {
-  const threshold = window.innerHeight * 0.35;
+  // Switch chrome/progress theme once the section top crosses mid-viewport.
+  const threshold = window.innerHeight * 0.5;
   let current = 0;
 
   for (let index = 0; index < SECTION_IDS.length; index += 1) {
@@ -360,22 +350,4 @@ function getCurrentSectionIndex() {
   }
 
   return current;
-}
-
-export function scrollToNextSection() {
-  const currentIndex = getCurrentSectionIndex();
-  const nextIndex = Math.min(currentIndex + 1, SECTION_IDS.length - 1);
-  const targetId = SECTION_IDS[nextIndex];
-  const target = `#${targetId}`;
-  const smoother = ScrollSmoother.get();
-
-  if (smoother) {
-    smoother.scrollTo(target, true, "top top");
-    return;
-  }
-
-  document.getElementById(targetId)?.scrollIntoView({
-    behavior: "smooth",
-    block: "start",
-  });
 }

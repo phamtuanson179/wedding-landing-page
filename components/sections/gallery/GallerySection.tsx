@@ -29,6 +29,7 @@ import {
   getLoopPhotos,
   getPhotoSize,
   getRowHeight,
+  getSectionViewportHeight,
   type FilmstripPhoto,
   type GalleryRowConfig,
 } from "./filmstripPhotos";
@@ -226,19 +227,23 @@ function FilmstripRow({
   rowHeight,
   frameGap,
   onSelect,
+  looped = true,
+  withOffset = true,
 }: {
   row: GalleryRowConfig;
   rowHeight: number;
   frameGap: number;
   onSelect: (photo: FilmstripPhoto) => void;
+  looped?: boolean;
+  withOffset?: boolean;
 }) {
-  const photos = getLoopPhotos(row.photos);
+  const photos = looped ? getLoopPhotos(row.photos) : row.photos;
 
   return (
     <div className="filmstrip-row overflow-hidden" data-filmstrip-row>
       <div
         data-gallery-track
-        className={`filmstrip-row__track ${row.offsetClass}`}
+        className={`filmstrip-row__track ${withOffset ? row.offsetClass : ""}`}
         style={{ gap: frameGap, height: rowHeight }}
       >
         {photos.map((photo, index) => (
@@ -258,12 +263,14 @@ function FilmstripRow({
 
 function GalleryFallback({
   sectionRef,
+  stackRef,
   rowHeight,
   frameGap,
   rowGap,
   onSelect,
 }: {
   sectionRef: React.RefObject<HTMLElement | null>;
+  stackRef: React.RefObject<HTMLDivElement | null>;
   rowHeight: number;
   frameGap: number;
   rowGap: number;
@@ -274,9 +281,13 @@ function GalleryFallback({
       id="section-4"
       ref={sectionRef}
       data-gallery-section
-      className="bg-background px-6 py-16 text-foreground md:px-16"
+      className="relative flex h-dvh min-h-dvh flex-col overflow-hidden bg-background text-foreground pb-[var(--section-nav-height,0px)]"
+      aria-label="Gallery ảnh cưới"
     >
-      <header className="mb-10">
+      <header
+        data-gallery-header
+        className="w-full shrink-0 px-6 pt-10 md:px-16"
+      >
         <p className="text-[10px] uppercase tracking-[0.32em] text-foreground/45">
           Gallery
         </p>
@@ -284,7 +295,12 @@ function GalleryFallback({
           Album cưới
         </h2>
       </header>
-      <div className="flex flex-col overflow-x-auto" style={{ gap: rowGap }}>
+
+      <div
+        ref={stackRef}
+        className="mt-1 flex min-h-0 flex-1 flex-col justify-end overflow-hidden pb-1 md:mt-4 md:pb-4"
+        style={{ gap: rowGap }}
+      >
         {GALLERY_ROWS.map((row) => (
           <FilmstripRow
             key={row.id}
@@ -292,6 +308,8 @@ function GalleryFallback({
             rowHeight={rowHeight}
             frameGap={frameGap}
             onSelect={onSelect}
+            looped
+            withOffset={false}
           />
         ))}
       </div>
@@ -418,6 +436,7 @@ function waitForGalleryImages(section: HTMLElement) {
 export function GallerySection() {
   const sectionRef = useRef<HTMLElement>(null);
   const pinRef = useRef<HTMLDivElement>(null);
+  const stackRef = useRef<HTMLDivElement>(null);
   const lightboxRef = useRef<HTMLDivElement>(null);
   const lightboxBackdropImageRef = useRef<HTMLDivElement>(null);
   const lightboxPanelRef = useRef<HTMLDivElement>(null);
@@ -439,16 +458,36 @@ export function GallerySection() {
 
   useLayoutEffect(() => {
     const updateGalleryMetrics = () => {
-      setRowHeight(getRowHeight());
-      setFrameGap(getFrameGap());
-      setRowGap(getRowGap());
+      const nextFrameGap = getFrameGap();
+      const nextRowGap = getRowGap();
+      setFrameGap(nextFrameGap);
+      setRowGap(nextRowGap);
+
+      const stack = stackRef.current;
+      const measured =
+        stack && isMobileViewport() ? stack.clientHeight : undefined;
+      setRowHeight(getRowHeight(measured));
     };
 
     updateGalleryMetrics();
     setIsReady(true);
 
+    const raf = window.requestAnimationFrame(updateGalleryMetrics);
+    const stack = stackRef.current;
+    const resizeObserver =
+      stack && typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(updateGalleryMetrics)
+        : null;
+    resizeObserver?.observe(stack);
+
     window.addEventListener("resize", updateGalleryMetrics);
-    return () => window.removeEventListener("resize", updateGalleryMetrics);
+    window.addEventListener("sectionnav:height", updateGalleryMetrics);
+    return () => {
+      window.cancelAnimationFrame(raf);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateGalleryMetrics);
+      window.removeEventListener("sectionnav:height", updateGalleryMetrics);
+    };
   }, []);
 
   useLayoutEffect(() => {
@@ -462,6 +501,8 @@ export function GallerySection() {
     let scrollTimeline: gsap.core.Timeline | undefined;
     let skewResetTimer: number | undefined;
     let cancelled = false;
+    const revealTriggers: ScrollTrigger[] = [];
+    const marqueeTweens: gsap.core.Tween[] = [];
 
     const cleanup = () => {
       if (skewResetTimer) {
@@ -471,14 +512,134 @@ export function GallerySection() {
       chromeTrigger?.kill();
       scrollTimeline?.scrollTrigger?.kill();
       scrollTimeline?.kill();
+      revealTriggers.forEach((trigger) => trigger.kill());
+      revealTriggers.length = 0;
+      marqueeTweens.forEach((tween) => tween.kill());
+      marqueeTweens.length = 0;
       chromeTrigger = undefined;
       scrollTimeline = undefined;
 
       section
-        .querySelectorAll<HTMLElement>("[data-gallery-photo-item], [data-filmstrip-row]")
+        .querySelectorAll<HTMLElement>(
+          "[data-gallery-photo-item], [data-filmstrip-row], [data-gallery-header], [data-gallery-track]",
+        )
         .forEach((item) => {
-          gsap.set(item, { clearProps: "skewX,y,transform" });
+          gsap.set(item, {
+            clearProps: "skewX,y,x,transform,opacity,visibility,clipPath",
+          });
         });
+
+      section
+        .querySelectorAll<HTMLElement>("[data-gallery-photo-item] img")
+        .forEach((img) => {
+          gsap.set(img, { clearProps: "transform" });
+        });
+    };
+
+    const setupMobileMarquee = async () => {
+      const header = section.querySelector<HTMLElement>("[data-gallery-header]");
+      const filmRows = Array.from(
+        section.querySelectorAll<HTMLElement>("[data-filmstrip-row]"),
+      );
+
+      if (header && !prefersReducedMotion()) {
+        gsap.set(header, { y: 22, autoAlpha: 0 });
+        const headerTween = gsap.to(header, {
+          y: 0,
+          autoAlpha: 1,
+          duration: 0.7,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: header,
+            start: "top 88%",
+            toggleActions: "play none none reverse",
+            scroller,
+            invalidateOnRefresh: true,
+          },
+        });
+        if (headerTween.scrollTrigger) {
+          revealTriggers.push(headerTween.scrollTrigger);
+        }
+      }
+
+      await waitForGalleryImages(section);
+      if (cancelled) {
+        return;
+      }
+
+      filmRows.forEach((rowEl, rowIndex) => {
+        const row = GALLERY_ROWS[rowIndex];
+        const track = rowEl.querySelector<HTMLElement>("[data-gallery-track]");
+        if (!row || !track) {
+          return;
+        }
+
+        if (!prefersReducedMotion()) {
+          gsap.set(rowEl, { y: 16, autoAlpha: 0 });
+          const rowReveal = gsap.to(rowEl, {
+            y: 0,
+            autoAlpha: 1,
+            duration: 0.55,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: rowEl,
+              start: "top 90%",
+              toggleActions: "play none none reverse",
+              scroller,
+              invalidateOnRefresh: true,
+            },
+          });
+          if (rowReveal.scrollTrigger) {
+            revealTriggers.push(rowReveal.scrollTrigger);
+          }
+        }
+
+        // Duplicated photos → half width is one seamless loop segment.
+        const loopWidth = track.scrollWidth / 2;
+        if (loopWidth <= 0) {
+          return;
+        }
+
+        const pixelsPerSecond = 28 * row.speed;
+        const duration = Math.max(loopWidth / pixelsPerSecond, 12);
+        const movesLeft = row.direction === "left";
+
+        gsap.set(track, {
+          x: movesLeft ? 0 : -loopWidth,
+          force3D: true,
+        });
+
+        if (prefersReducedMotion()) {
+          return;
+        }
+
+        const marquee = gsap.to(track, {
+          x: movesLeft ? -loopWidth : 0,
+          duration,
+          ease: "none",
+          repeat: -1,
+          force3D: true,
+        });
+
+        marqueeTweens.push(marquee);
+      });
+
+      const visibilityTrigger = ScrollTrigger.create({
+        trigger: section,
+        start: "top bottom",
+        end: "bottom top",
+        scroller,
+        invalidateOnRefresh: true,
+        onEnter: () => marqueeTweens.forEach((tween) => tween.play()),
+        onEnterBack: () => marqueeTweens.forEach((tween) => tween.play()),
+        onLeave: () => marqueeTweens.forEach((tween) => tween.pause()),
+        onLeaveBack: () => marqueeTweens.forEach((tween) => tween.pause()),
+      });
+      revealTriggers.push(visibilityTrigger);
+
+      if (!visibilityTrigger.isActive) {
+        marqueeTweens.forEach((tween) => tween.pause());
+      }
     };
 
     const setup = async () => {
@@ -503,6 +664,8 @@ export function GallerySection() {
           syncGalleryChrome(true);
         }
 
+        await setupMobileMarquee();
+        ScrollTrigger.refresh();
         return;
       }
 
@@ -532,13 +695,13 @@ export function GallerySection() {
 
       const getPinDistance = () => {
         const distances = tracks.map(getTrackDistance);
-        return Math.max(Math.max(...distances, 0), window.innerHeight);
+        return Math.max(Math.max(...distances, 0), getSectionViewportHeight());
       };
 
       chromeTrigger = ScrollTrigger.create({
         trigger: section,
         start: "top bottom",
-        end: () => `+=${getPinDistance() + window.innerHeight}`,
+        end: () => `+=${getPinDistance() + getSectionViewportHeight()}`,
         scroller,
         invalidateOnRefresh: true,
         onToggle: (self) => syncGalleryChrome(self.isActive),
@@ -743,6 +906,7 @@ export function GallerySection() {
       <>
         <GalleryFallback
           sectionRef={sectionRef}
+          stackRef={stackRef}
           rowHeight={rowHeight}
           frameGap={frameGap}
           rowGap={rowGap}
@@ -764,7 +928,7 @@ export function GallerySection() {
       >
         <div
           ref={pinRef}
-          className="relative flex h-dvh min-h-dvh flex-col overflow-hidden"
+          className="relative flex h-dvh min-h-dvh flex-col overflow-hidden pb-[var(--section-nav-height,0px)]"
         >
           <header className="pointer-events-none relative z-20 w-full shrink-0 px-6 pt-10 md:absolute md:top-20 md:left-16 md:w-auto md:px-0 md:pt-0">
             <p className="text-[9px] uppercase tracking-[0.28em] text-foreground/45 md:text-[10px] md:tracking-[0.32em]">
@@ -776,7 +940,8 @@ export function GallerySection() {
           </header>
 
           <div
-            className="mt-auto flex flex-col justify-end pb-6 md:pb-12 max-md:mt-0 max-md:flex-1 max-md:justify-end max-md:pb-12 max-md:pt-5"
+            ref={stackRef}
+            className="mt-auto flex min-h-0 flex-col justify-end pb-1 md:pb-8 max-md:mt-1 max-md:flex-1 max-md:justify-start max-md:overflow-hidden max-md:pt-0"
             style={{ gap: rowGap }}
           >
             {GALLERY_ROWS.map((row) => (

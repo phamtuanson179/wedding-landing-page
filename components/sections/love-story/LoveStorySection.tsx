@@ -13,7 +13,19 @@ import {
 
 gsap.registerPlugin(ScrollTrigger);
 
-const STORY_PANELS = [
+type MediaLayout = "grid" | "overlap" | "film";
+
+type StoryPanel = {
+  index: string;
+  label: string;
+  title: string;
+  description: string;
+  date: string;
+  mediaLayout: MediaLayout;
+  images: readonly string[];
+};
+
+const STORY_PANELS: readonly StoryPanel[] = [
   {
     index: "01",
     label: "Quá trình",
@@ -21,8 +33,12 @@ const STORY_PANELS = [
     description:
       "Từ những ngày đầu là bạn bè, chúng mình lớn lên cùng nhau — chia sẻ mọi điều và chở che cho nhau.",
     date: "14.03",
-    image:
+    mediaLayout: "grid",
+    images: [
       "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1400&q=80",
+      "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=900&q=80",
+      "https://images.unsplash.com/photo-1529636798458-92182e662485?auto=format&fit=crop&w=900&q=80",
+    ],
   },
   {
     index: "02",
@@ -31,8 +47,11 @@ const STORY_PANELS = [
     description:
       "Giữa những kỷ niệm quen thuộc, chúng mình chọn bước sang chương mới — nơi tình bạn và tình yêu cùng trở thành cam kết.",
     date: "22.08",
-    image:
+    mediaLayout: "overlap",
+    images: [
       "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1400&q=80",
+      "https://images.unsplash.com/photo-1606216794074-735e91aa2c92?auto=format&fit=crop&w=900&q=80",
+    ],
   },
   {
     index: "03",
@@ -41,17 +60,21 @@ const STORY_PANELS = [
     description:
       "Hôm nay, chúng mình chính thức trở thành gia đình — vẫn là tri kỷ, vẫn là chỗ dựa, và là hành trình mới bắt đầu từ đây.",
     date: "29.11",
-    image:
+    mediaLayout: "film",
+    images: [
       "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1600&q=80",
+      "https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1400&q=80",
+      "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=900&q=80",
+    ],
   },
-] as const;
-
-type StoryPanel = (typeof STORY_PANELS)[number];
+];
 
 const STORY_LABEL_CLASS = "text-[#d4b87a]";
 const STORY_MUTED_CLASS = "text-background/55";
 const STORY_BODY_CLASS = "text-background/88";
 const CARD_BORDER = "border border-[#e6dfd3]/55";
+const INSET_BORDER = "border border-[#e6dfd3]/70";
 
 function subscribeLayout(onStoreChange: () => void) {
   const motionMq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -62,6 +85,235 @@ function subscribeLayout(onStoreChange: () => void) {
     motionMq.removeEventListener("change", onChange);
     window.removeEventListener("resize", onChange);
   };
+}
+
+function StoryImage({
+  src,
+  alt = "",
+  sizes,
+  priority = false,
+  className = "object-cover",
+}: {
+  src: string;
+  alt?: string;
+  sizes: string;
+  priority?: boolean;
+  className?: string;
+}) {
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      fill
+      sizes={sizes}
+      className={className}
+      priority={priority}
+    />
+  );
+}
+
+/** Layout 1 — 2/3 hero + 1/3 stacked details */
+function MediaGrid({
+  images,
+  compact,
+  priority,
+}: {
+  images: readonly string[];
+  compact?: boolean;
+  priority?: boolean;
+}) {
+  const [hero, detailA, detailB] = images;
+  const gap = "gap-0";
+
+  return (
+    <div className={`grid h-full min-h-0 grid-cols-3 ${gap}`}>
+      <div className="relative col-span-2 min-h-0 overflow-hidden">
+        <StoryImage
+          src={hero}
+          sizes={compact ? "70vw" : "40vw"}
+          priority={priority}
+        />
+      </div>
+      <div className={`flex min-h-0 flex-col ${gap}`}>
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <StoryImage src={detailA ?? hero} sizes={compact ? "30vw" : "14vw"} />
+        </div>
+        <div className="relative min-h-0 flex-1 overflow-hidden">
+          <StoryImage src={detailB ?? hero} sizes={compact ? "30vw" : "14vw"} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Layout 2 — wide base + overlapping portrait inset */
+function MediaOverlap({
+  images,
+  compact,
+  priority,
+}: {
+  images: readonly string[];
+  compact?: boolean;
+  priority?: boolean;
+}) {
+  const [base, inset] = images;
+
+  return (
+    <div className="relative h-full min-h-0 overflow-hidden">
+      <div className="absolute inset-0">
+        <StoryImage
+          src={base}
+          sizes={compact ? "88vw" : "42vw"}
+          priority={priority}
+        />
+      </div>
+      <div
+        data-story-inset
+        className={`absolute z-10 overflow-hidden bg-primary will-change-transform ${INSET_BORDER} ${
+          compact
+            ? "bottom-[8%] right-[6%] h-[48%] w-[38%]"
+            : "bottom-[10%] right-[8%] h-[52%] w-[36%]"
+        }`}
+      >
+        <StoryImage src={inset ?? base} sizes={compact ? "35vw" : "16vw"} />
+      </div>
+    </div>
+  );
+}
+
+/** Layout 3 — mini film carousel (auto crossfade) */
+function MediaFilm({
+  images,
+  compact,
+  priority,
+  autoplay = true,
+}: {
+  images: readonly string[];
+  compact?: boolean;
+  priority?: boolean;
+  autoplay?: boolean;
+}) {
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root || !autoplay || images.length <= 1) {
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (prefersReducedMotion) {
+      return;
+    }
+
+    const slides = Array.from(
+      root.querySelectorAll<HTMLElement>("[data-story-film-slide]"),
+    );
+    const dots = Array.from(
+      root.querySelectorAll<HTMLElement>("[data-story-film-dot]"),
+    );
+
+    gsap.set(slides, { autoAlpha: 0, zIndex: 0 });
+    gsap.set(slides[0], { autoAlpha: 1, zIndex: 1 });
+    gsap.set(dots, { backgroundColor: "rgba(230, 223, 211, 0.35)" });
+    if (dots[0]) {
+      gsap.set(dots[0], { backgroundColor: "rgba(212, 184, 122, 0.95)" });
+    }
+
+    const fade = gsap.timeline({
+      repeat: -1,
+      defaults: { ease: "power2.inOut" },
+    });
+
+    slides.forEach((_, i) => {
+      const next = (i + 1) % slides.length;
+      fade
+        .to({}, { duration: 2.4 })
+        .to(slides[i], { autoAlpha: 0, duration: 0.85, zIndex: 0 }, ">")
+        .to(slides[next], { autoAlpha: 1, duration: 0.85, zIndex: 1 }, "<")
+        .add(() => {
+          dots.forEach((dot, di) => {
+            gsap.set(dot, {
+              backgroundColor:
+                di === next
+                  ? "rgba(212, 184, 122, 0.95)"
+                  : "rgba(230, 223, 211, 0.35)",
+            });
+          });
+        }, "<");
+    });
+
+    return () => {
+      fade.kill();
+    };
+  }, [autoplay, images.length]);
+
+  return (
+    <div ref={rootRef} className="relative h-full min-h-0 overflow-hidden">
+      {images.map((src, i) => (
+        <div
+          key={`${src}-${i}`}
+          data-story-film-slide
+          className={`absolute inset-0 ${i === 0 ? "opacity-100" : "opacity-0"}`}
+        >
+          <StoryImage
+            src={src}
+            sizes={compact ? "88vw" : "42vw"}
+            priority={priority && i === 0}
+          />
+        </div>
+      ))}
+      <div
+        className={`pointer-events-none absolute left-1/2 z-10 flex -translate-x-1/2 gap-1.5 ${
+          compact ? "bottom-2" : "bottom-4"
+        }`}
+        aria-hidden
+      >
+        {images.map((_, i) => (
+          <span
+            key={i}
+            data-story-film-dot
+            className={`size-1 rounded-full ${
+              i === 0 ? "bg-[#d4b87a]" : "bg-[#e6dfd3]/35"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StoryMedia({
+  panel,
+  compact = false,
+}: {
+  panel: StoryPanel;
+  compact?: boolean;
+}) {
+  const priority = panel.index === "01";
+
+  switch (panel.mediaLayout) {
+    case "grid":
+      return (
+        <MediaGrid images={panel.images} compact={compact} priority={priority} />
+      );
+    case "overlap":
+      return (
+        <MediaOverlap
+          images={panel.images}
+          compact={compact}
+          priority={priority}
+        />
+      );
+    case "film":
+      return (
+        <MediaFilm images={panel.images} compact={compact} priority={priority} />
+      );
+    default:
+      return null;
+  }
 }
 
 function StoryCardFace({
@@ -109,29 +361,22 @@ function StoryCardFace({
     </div>
   );
 
-  const image = (
+  const media = (
     <div
-      className={`relative ${
+      className={`relative min-h-0 ${
         layout === "stacked"
           ? "aspect-[16/11] max-h-[34vh] w-full shrink-0 border-b border-[#e6dfd3]/25"
-          : "min-h-0 border-t border-[#e6dfd3]/25 md:border-t-0 md:border-l md:border-[#e6dfd3]/25"
+          : "border-t border-[#e6dfd3]/25 md:border-t-0 md:border-l md:border-[#e6dfd3]/25"
       }`}
     >
-      <Image
-        src={panel.image}
-        alt=""
-        fill
-        sizes={layout === "stacked" ? "88vw" : "(max-width: 768px) 90vw, 42vw"}
-        className="object-cover"
-        priority={panel.index === "01"}
-      />
+      <StoryMedia panel={panel} compact={layout === "stacked"} />
     </div>
   );
 
   if (layout === "stacked") {
     return (
       <div className="flex h-full min-h-0 flex-col">
-        {image}
+        {media}
         {text}
       </div>
     );
@@ -140,7 +385,7 @@ function StoryCardFace({
   return (
     <div className="grid h-full min-h-0 grid-cols-2">
       {text}
-      {image}
+      {media}
     </div>
   );
 }
@@ -220,7 +465,7 @@ function StoryReducedMotionLayout({
 
 /**
  * Mobile: horizontal lookbook — swipe cards with scroll-snap.
- * Card = image on top, copy below, still bordered.
+ * Card = media on top, copy below, still bordered.
  */
 function StoryMobileCardsLayout({
   sectionRef,
@@ -328,6 +573,7 @@ function StoryStackedCardsLayout({
 
     const scroller = getScroller();
     const count = cards.length;
+    const extras: gsap.core.Tween[] = [];
 
     // Stack at rest: top card full; cards below recessed for depth
     cards.forEach((card, index) => {
@@ -339,6 +585,28 @@ function StoryStackedCardsLayout({
         transformOrigin: "50% 50%",
         force3D: true,
       });
+
+      // Layout 2: inset drifts slower than scroll for cinematic depth
+      const inset = card.querySelector<HTMLElement>("[data-story-inset]");
+      if (inset) {
+        const insetTween = gsap.fromTo(
+          inset,
+          { yPercent: 8 },
+          {
+            yPercent: -20,
+            ease: "none",
+            scrollTrigger: {
+              trigger: section,
+              start: "top top",
+              end: () => `+=${window.innerHeight * count}`,
+              scrub: true,
+              scroller,
+              invalidateOnRefresh: true,
+            },
+          },
+        );
+        extras.push(insetTween);
+      }
     });
 
     progressItems.forEach((item, index) => {
@@ -372,7 +640,6 @@ function StoryStackedCardsLayout({
       const outgoing = cards[index];
       const incoming = cards[index + 1];
 
-      // Cách 1: top card slides straight up and out
       timeline.to(
         outgoing,
         {
@@ -384,7 +651,6 @@ function StoryStackedCardsLayout({
         at,
       );
 
-      // Card underneath grows into place at the same time
       timeline.to(
         incoming,
         {
@@ -396,7 +662,6 @@ function StoryStackedCardsLayout({
         at,
       );
 
-      // Keep the next-next card recessed until its turn
       const nextBelow = cards[index + 2];
       if (nextBelow) {
         timeline.set(
@@ -439,6 +704,10 @@ function StoryStackedCardsLayout({
       window.removeEventListener("resize", refresh);
       timeline.scrollTrigger?.kill();
       timeline.kill();
+      extras.forEach((tween) => {
+        tween.scrollTrigger?.kill();
+        tween.kill();
+      });
     };
   }, [sectionRef]);
 
@@ -454,7 +723,6 @@ function StoryStackedCardsLayout({
       >
         <StorySectionHeader progressRefs={progressRefs} />
 
-        {/* Stacked deck — ~85% viewport, absolute stack = grid-area 1/1 */}
         <div className="relative h-[min(85dvh,820px)] w-[min(85vw,1100px)]">
           {STORY_PANELS.map((panel, index) => (
             <article

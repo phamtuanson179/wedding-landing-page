@@ -17,7 +17,7 @@ export function CornerLabels() {
           <span>11</span>
         </div>
 
-        <p className="absolute bottom-15 left-6 origin-bottom-left -rotate-90 text-[10px] font-bold md:bottom-14 md:left-8 md:text-xs lg:bottom-22 lg:left-16">
+        <p className="absolute bottom-15 left-6 origin-bottom-left -rotate-90 font-light md:bottom-14 md:left-8 md:text-xs lg:bottom-22 lg:left-16">
           Gia Lâm, Hà Nội
         </p>
 

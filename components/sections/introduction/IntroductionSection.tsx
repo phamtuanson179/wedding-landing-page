@@ -360,16 +360,16 @@ function IntroDesktop({
 
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-[1] bg-linear-to-b from-background/30 via-transparent to-background/40"
+        className="pointer-events-none absolute inset-0 z-[1] bg-linear-to-b from-black/50 via-transparent to-background/40"
       />
 
       <header className="absolute inset-x-0 top-0 z-20 px-5 pt-8 text-center md:px-10 md:pt-12">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-foreground/70 md:text-xs md:tracking-[0.32em]">
+        <p className="text-[10px] uppercase tracking-[0.28em] text-background/80 md:text-xs md:tracking-[0.32em]">
           Giới thiệu
         </p>
         <h2
           ref={titleRef}
-          className="mt-2 font-display text-[clamp(1.25rem,3.4vw,2.35rem)] leading-tight text-foreground md:mt-3"
+          className="mt-2 font-display text-[clamp(1.25rem,3.4vw,2.35rem)] leading-tight text-background drop-shadow-[0_1px_18px_rgba(0,0,0,0.45)] md:mt-3"
         >
           Hai người, một hành trình
         </h2>

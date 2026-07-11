@@ -11,10 +11,12 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { dispatchHeroEntranceStart, HERO_ENTRANCE_COMPLETE } from "@/components/sections/hero/heroEntrance";
 import {
   ensureCornerChromeVisible,
+  preparePreloaderChrome,
   scrollToNextSection,
   setCornerNavColor,
 } from "@/lib/scroll/cornerNav";
 import { setPreloaderPolygonAnimating } from "@/lib/preloader/preloaderState";
+import { playBackgroundMusicWithSound } from "@/lib/audio/backgroundMusic";
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
@@ -105,7 +107,7 @@ function setInitialState({
   return { strokeLength };
 }
 
-function createReducedMotionTimeline(
+function createReducedMotionExitTimeline(
   elements: PreloaderElements,
   onComplete: () => void,
   onArrowReveal: () => void,
@@ -144,18 +146,15 @@ function createReducedMotionTimeline(
     );
 }
 
-function createMainTimeline(
+function createLoadingTimeline(
   elements: PreloaderElements,
   strokeLength: number,
-  onComplete: () => void,
-  onArrowReveal: () => void,
+  onReady: () => void,
 ) {
-  const { polygon, loader, polygonWrapper, arrowInner } = elements;
-  const transitionStart = LOADING_DURATION;
-  const transitionEnd = LOADING_DURATION + TRANSITION_DURATION;
+  const { polygon } = elements;
 
   return gsap
-    .timeline({ onComplete })
+    .timeline({ onComplete: onReady })
     .fromTo(
       polygon,
       { strokeDashoffset: strokeLength },
@@ -165,7 +164,18 @@ function createMainTimeline(
         ease: "none",
       },
       0,
-    )
+    );
+}
+
+function createExitTimeline(
+  elements: PreloaderElements,
+  onComplete: () => void,
+  onArrowReveal: () => void,
+) {
+  const { polygon, loader, polygonWrapper, arrowInner } = elements;
+
+  return gsap
+    .timeline({ onComplete })
     .to(
       loader,
       {
@@ -173,7 +183,7 @@ function createMainTimeline(
         duration: TRANSITION_DURATION,
         ease: "power2.inOut",
       },
-      transitionStart,
+      0,
     )
     .to(
       polygonWrapper,
@@ -186,7 +196,7 @@ function createMainTimeline(
         duration: TRANSITION_DURATION,
         ease: "power2.inOut",
       },
-      transitionStart,
+      0,
     )
     .to(
       polygon,
@@ -195,7 +205,7 @@ function createMainTimeline(
         duration: TRANSITION_DURATION,
         ease: "power2.inOut",
       },
-      transitionStart,
+      0,
     )
     .to(
       arrowInner,
@@ -206,7 +216,7 @@ function createMainTimeline(
         ease: "power2.out",
         onComplete: onArrowReveal,
       },
-      transitionEnd,
+      TRANSITION_DURATION,
     );
 }
 
@@ -251,6 +261,7 @@ function startScrollExplorePulse(scrollHint: HTMLElement) {
 
 export function PreLoader() {
   const [isInteractive, setIsInteractive] = useState(false);
+  const [awaitingEnter, setAwaitingEnter] = useState(false);
   const loaderRef = useRef<HTMLElement>(null);
   const polygonWrapperRef = useRef<HTMLDivElement>(null);
   const polygonSpinRef = useRef<HTMLDivElement>(null);
@@ -316,7 +327,17 @@ export function PreLoader() {
       return;
     }
 
+    const previousScrollRestoration = history.scrollRestoration;
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
     setCornerNavColor("loading");
+    preparePreloaderChrome();
     ensureCornerChromeVisible();
 
     setPreloaderPolygonAnimating(true);
@@ -324,30 +345,22 @@ export function PreLoader() {
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const smoother = ScrollSmoother.get();
+    smoother?.scrollTo(0, false);
     smoother?.paused(true);
     const restoreScrollState = () => {
       document.body.style.overflow = previousOverflow;
       smoother?.paused(false);
     };
 
-    let timeline: gsap.core.Timeline | undefined;
+    let loadingTimeline: gsap.core.Timeline | undefined;
+    let exitTimeline: gsap.core.Timeline | undefined;
+    let loadingReady = false;
+    let musicStarted = false;
+    let exitStarted = false;
 
-    const startTimeline = () => {
-      const { strokeLength } = setInitialState(elements);
-
-      const prefersReducedMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)",
-      ).matches;
-
-      timeline = prefersReducedMotion
-        ? createReducedMotionTimeline(elements, finishPreloader, revealArrow)
-        : createMainTimeline(
-            elements,
-            strokeLength,
-            finishPreloader,
-            revealArrow,
-          );
-    };
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
 
     const finishPreloader = () => {
       setPreloaderPolygonAnimating(false);
@@ -362,11 +375,15 @@ export function PreLoader() {
       setCornerNavColor("hero");
       ensureCornerChromeVisible();
       restoreScrollState();
+      if ("scrollRestoration" in history) {
+        history.scrollRestoration = previousScrollRestoration;
+      }
       if (smoother) {
         ScrollTrigger.refresh();
       }
       elements.loader.setAttribute("aria-hidden", "true");
       elements.loader.style.pointerEvents = "none";
+      setAwaitingEnter(false);
       setIsInteractive(true);
       dispatchHeroEntranceStart();
     };
@@ -379,6 +396,62 @@ export function PreLoader() {
 
       arrowBounceTweenRef.current?.kill();
       arrowBounceTweenRef.current = startArrowBounce(elements.arrowBounce);
+    };
+
+    const beginExit = () => {
+      if (exitStarted) {
+        return;
+      }
+
+      exitStarted = true;
+      setAwaitingEnter(false);
+      elements.loader.style.cursor = "default";
+
+      exitTimeline = prefersReducedMotion
+        ? createReducedMotionExitTimeline(
+            elements,
+            finishPreloader,
+            revealArrow,
+          )
+        : createExitTimeline(elements, finishPreloader, revealArrow);
+    };
+
+    const onEnterGesture = () => {
+      // Start music inside the same user gesture — required by browsers.
+      playBackgroundMusicWithSound();
+      musicStarted = true;
+
+      if (loadingReady) {
+        beginExit();
+      }
+    };
+
+    const onLoadingReady = () => {
+      loadingReady = true;
+
+      if (musicStarted) {
+        beginExit();
+        return;
+      }
+
+      // Wait for a tap to open the invite + unlock audio.
+      setAwaitingEnter(true);
+      elements.loader.style.cursor = "pointer";
+    };
+
+    const startTimeline = () => {
+      const { strokeLength } = setInitialState(elements);
+
+      if (prefersReducedMotion) {
+        onLoadingReady();
+        return;
+      }
+
+      loadingTimeline = createLoadingTimeline(
+        elements,
+        strokeLength,
+        onLoadingReady,
+      );
     };
 
     const revealScrollHint = () => {
@@ -395,6 +468,7 @@ export function PreLoader() {
       revealScrollHint();
     };
 
+    elements.loader.addEventListener("pointerdown", onEnterGesture);
     window.addEventListener(HERO_ENTRANCE_COMPLETE, handleHeroEntranceComplete);
 
     requestAnimationFrame(() => {
@@ -402,6 +476,7 @@ export function PreLoader() {
     });
 
     return () => {
+      elements.loader.removeEventListener("pointerdown", onEnterGesture);
       window.removeEventListener(
         HERO_ENTRANCE_COMPLETE,
         handleHeroEntranceComplete,
@@ -410,19 +485,29 @@ export function PreLoader() {
       arrowBounceTweenRef.current?.kill();
       scrollHintTweenRef.current?.kill();
       setPreloaderPolygonAnimating(false);
-      timeline?.kill();
+      loadingTimeline?.kill();
+      exitTimeline?.kill();
       restoreScrollState();
+      if ("scrollRestoration" in history) {
+        history.scrollRestoration = previousScrollRestoration;
+      }
     };
   }, []);
 
   return (
     <>
       <section
-        id='loader'
+        id="loader"
         ref={loaderRef}
-        className='fixed inset-0 z-40 bg-primary will-change-transform'
-        aria-label='Loading'
-      />
+        className="fixed inset-0 z-40 bg-primary will-change-transform"
+        aria-label={awaitingEnter ? "Chạm để mở thiệp" : "Loading"}
+      >
+        {awaitingEnter ? (
+          <p className="pointer-events-none absolute inset-x-0 bottom-[18%] z-10 text-center text-[10px] uppercase tracking-[0.35em] text-background/70 animate-pulse md:bottom-[16%]">
+            Chạm để mở thiệp
+          </p>
+        ) : null}
+      </section>
 
       <div
         data-corner-nav
@@ -438,15 +523,15 @@ export function PreLoader() {
           }`}
         >
           <button
-            type='button'
-            aria-label='Scroll to next section'
+            type="button"
+            aria-label="Scroll to next section"
             disabled={!isInteractive}
             onClick={scrollToNextSection}
             onMouseEnter={handlePolygonHoverStart}
             onMouseLeave={handlePolygonHoverEnd}
             onFocus={handlePolygonHoverStart}
             onBlur={handlePolygonHoverEnd}
-            className='group relative size-full cursor-pointer bg-transparent disabled:cursor-default'
+            className="group relative size-full cursor-pointer bg-transparent disabled:cursor-default"
           >
             <div ref={polygonSpinRef} className="size-full">
               <PolygonSvg ref={polygonRef} />

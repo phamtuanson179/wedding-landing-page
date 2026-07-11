@@ -52,11 +52,7 @@ export function shouldUseHorizontalStoryScroll() {
     return false;
   }
 
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    return false;
-  }
-
-  return !isTouchDevice();
+  return !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export function getScroller() {
@@ -98,6 +94,37 @@ let isMobileCornerNavHidden = false;
 
 function setPastHeroState(pastHero: boolean) {
   document.documentElement.toggleAttribute("data-past-hero", pastHero);
+}
+
+/**
+ * Reset chrome flags and force-show corner nav for the loading screen.
+ * Needed when the browser restores mid-page scroll before PreLoader mounts —
+ * Hero/Gallery may have already hidden the chrome.
+ */
+export function preparePreloaderChrome() {
+  isMobileCornerNavHidden = false;
+  isGalleryChromeHidden = false;
+  setPastHeroState(false);
+
+  const cornerNav = getCornerNav();
+  if (cornerNav) {
+    gsap.set(cornerNav, {
+      autoAlpha: 1,
+      visibility: "visible",
+      clearProps: "opacity,visibility",
+      overwrite: true,
+    });
+  }
+
+  const chrome = Array.from(getCornerChrome());
+  if (chrome.length > 0) {
+    gsap.set(chrome, {
+      autoAlpha: 1,
+      visibility: "visible",
+      clearProps: "opacity,visibility",
+      overwrite: true,
+    });
+  }
 }
 
 function showCornerChrome() {
@@ -184,7 +211,11 @@ export function ensureCornerChromeVisible() {
 }
 
 export function setMobileCornerNavVisible(visible: boolean) {
-  if (!isMobileViewport() || isPreloaderPolygonAnimating()) {
+  if (
+    !isMobileViewport() ||
+    isPreloaderPolygonAnimating() ||
+    isPreloaderActive()
+  ) {
     return;
   }
 

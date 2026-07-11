@@ -143,16 +143,16 @@ function PanelText({ panel }: { panel: StoryPanel }) {
       >
         {panel.label}
       </p>
-      <h3 className="story-text-line story-text-title mt-4 font-display text-[clamp(2rem,5vw,3.5rem)] leading-[1.05] text-background">
+      <h3 className="story-text-line story-text-title mt-2 font-display text-[clamp(1.65rem,6.5vw,3.5rem)] leading-[1.05] text-background md:mt-4">
         {panel.title}
       </h3>
       <p
-        className={`story-text-line story-text-desc mt-5 text-base leading-relaxed md:text-lg font-light ${STORY_BODY_CLASS}`}
+        className={`story-text-line story-text-desc mt-3 text-sm leading-relaxed font-light md:mt-5 md:text-lg ${STORY_BODY_CLASS}`}
       >
         {panel.description}
       </p>
       <p
-        className={`story-text-line story-text-date mt-6 text-xs uppercase tracking-[0.28em] ${STORY_MUTED_CLASS}`}
+        className={`story-text-line story-text-date mt-4 text-xs uppercase tracking-[0.28em] md:mt-6 ${STORY_MUTED_CLASS}`}
       >
         {panel.date}
       </p>
@@ -163,7 +163,7 @@ function PanelText({ panel }: { panel: StoryPanel }) {
 function PanelImage({ panel }: { panel: StoryPanel }) {
   return (
     <div
-      className={`story-image-mask relative w-full max-w-[min(88vw,420px)] overflow-hidden ${panel.imageAspect}`}
+      className={`story-image-mask relative w-full max-w-[min(52vw,220px)] overflow-hidden md:max-w-[min(88vw,420px)] ${panel.imageAspect}`}
     >
       <div className="story-image-inner relative h-full w-full">
         <Image
@@ -192,9 +192,9 @@ function PanelContent({
   if (panel.layout === "text-right") {
     return (
       <div
-        className={`flex h-full w-full flex-col items-center gap-10 md:flex-row md:gap-16 lg:gap-20 ${className}`}
+        className={`flex h-full w-full flex-col items-start justify-start gap-4 md:flex-row md:items-center md:justify-center md:gap-16 lg:gap-20 ${className}`}
       >
-        <div className="flex w-full items-center justify-center md:w-1/2">
+        <div className="flex w-full shrink-0 items-center justify-center md:w-1/2">
           {image}
         </div>
         <div className="flex w-full items-center md:w-1/2">{text}</div>
@@ -205,10 +205,10 @@ function PanelContent({
   if (panel.layout === "text-left-wide") {
     return (
       <div
-        className={`flex h-full w-full flex-col items-center gap-10 md:flex-row md:gap-14 lg:gap-16 ${className}`}
+        className={`flex h-full w-full flex-col items-start justify-start gap-4 md:flex-row md:items-center md:justify-center md:gap-14 lg:gap-16 ${className}`}
       >
         <div className="flex w-full items-center md:w-[40%]">{text}</div>
-        <div className="flex w-full items-center justify-center md:w-[60%]">
+        <div className="flex w-full shrink-0 items-center justify-center md:w-[60%]">
           {image}
         </div>
       </div>
@@ -217,10 +217,10 @@ function PanelContent({
 
   return (
     <div
-      className={`flex h-full w-full flex-col items-center gap-10 md:flex-row md:gap-16 lg:gap-20 ${className}`}
+      className={`flex h-full w-full flex-col items-start justify-start gap-4 md:flex-row md:items-center md:justify-center md:gap-16 lg:gap-20 ${className}`}
     >
       <div className="flex w-full items-center md:w-1/2">{text}</div>
-      <div className="flex w-full items-center justify-center md:w-1/2">
+      <div className="flex w-full shrink-0 items-center justify-center md:w-1/2">
         {image}
       </div>
     </div>
@@ -583,6 +583,7 @@ function StoryHorizontalPinnedLayout({
         anticipatePin: 1,
         invalidateOnRefresh: true,
         pinReparent: false,
+        pinType: isTouchDevice() ? "fixed" : "transform",
         onUpdate: (self) => {
           updateStoryProgress(progressItems, panels, self.progress);
         },
@@ -625,7 +626,9 @@ function StoryHorizontalPinnedLayout({
         ref={pinRef}
         className="relative h-dvh w-full overflow-hidden bg-primary text-background"
       >
-        <div className={`pointer-events-none absolute inset-x-0 top-0 z-20 ${CONTENT_INSET}`}>
+        <div
+          className={`pointer-events-none absolute inset-x-0 top-0 z-20 px-6 pt-14 md:px-24 md:pt-20 lg:px-32`}
+        >
           <StoryHeader />
         </div>
 
@@ -636,9 +639,9 @@ function StoryHorizontalPinnedLayout({
               ref={(el) => {
                 panelRefs.current[index] = el;
               }}
-              className={`h-full w-full shrink-0 basis-full ${CONTENT_INSET}`}
+              className="h-full w-full shrink-0 basis-full px-6 pb-24 pt-[8.75rem] md:px-24 md:pb-28 md:pt-40 lg:px-32"
             >
-              <PanelContent panel={panel} className="pt-28 md:pt-32" />
+              <PanelContent panel={panel} />
             </div>
           ))}
         </div>

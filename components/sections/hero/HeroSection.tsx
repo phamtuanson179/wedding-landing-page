@@ -11,6 +11,7 @@ import {
   setCornerNavColor,
   setMobileCornerNavVisible,
 } from "@/lib/scroll/cornerNav";
+import { whenPreloaderComplete } from "@/lib/preloader/preloaderState";
 import {
   HERO_ENTRANCE_COMPLETE,
   HERO_ENTRANCE_START,
@@ -187,6 +188,18 @@ export function HeroSection() {
     const scroller = getScroller();
     const media = gsap.matchMedia();
 
+    const syncMobileChromeFromScroll = () => {
+      if (!isMobileViewport()) {
+        return;
+      }
+
+      const pastHero = hero.getBoundingClientRect().bottom <= 0;
+      setMobileCornerNavVisible(!pastHero);
+      if (pastHero) {
+        setCornerNavColor("accent");
+      }
+    };
+
     const heroTrigger = ScrollTrigger.create({
       trigger: hero,
       start: "top top",
@@ -203,13 +216,11 @@ export function HeroSection() {
       },
     });
 
-    if (isMobileViewport()) {
-      const pastHero = hero.getBoundingClientRect().bottom <= 0;
-      setMobileCornerNavVisible(!pastHero);
-      if (pastHero) {
-        setCornerNavColor("accent");
-      }
-    }
+    // Defer past-hero chrome sync until loading finishes — otherwise a mid-page
+    // reload hides polygon + CornerLabels before PreLoader can show them.
+    const stopWaitingForPreloader = whenPreloaderComplete(
+      syncMobileChromeFromScroll,
+    );
 
     media.add("(min-width: 768px)", () => {
       ensureDesktopCornerChromeVisible();
@@ -223,6 +234,7 @@ export function HeroSection() {
     });
 
     return () => {
+      stopWaitingForPreloader();
       heroTrigger.kill();
       media.revert();
       setCornerNavColor("hero");

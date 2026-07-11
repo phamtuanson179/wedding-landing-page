@@ -186,7 +186,7 @@ function QrPanel({ account }: { account: BankAccount }) {
   return (
     <div className="qr-panel-inner mx-auto grid max-w-xl grid-cols-1 gap-4 py-4 md:grid-cols-[minmax(0,200px)_1fr] md:items-center md:gap-8 md:py-8">
       <div className="mx-auto w-full max-w-[148px] md:max-w-[200px]">
-        <div className="overflow-hidden rounded-lg border border-background/25 bg-white p-2 shadow-[0_12px_32px_rgba(0,0,0,0.2)] md:rounded-xl md:p-2.5 md:shadow-[0_16px_48px_rgba(0,0,0,0.22)]">
+        <div className="overflow-hidden rounded-lg border border-background/25 bg-white p-2 md:rounded-xl md:p-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={getVietQrUrl(account)}

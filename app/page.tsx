@@ -1,5 +1,9 @@
 import { PreLoader } from "@/components/preloader";
-import { ScrollProgress, ScrollSmootherProvider } from "@/components/layout";
+import {
+  BackgroundMusic,
+  ScrollProgress,
+  ScrollSmootherProvider,
+} from "@/components/layout";
 import {
   GallerySection,
   HeroSection,
@@ -13,6 +17,7 @@ export default function Home() {
   return (
     <>
       <ScrollProgress />
+      <BackgroundMusic />
 
       <ScrollSmootherProvider>
         <main>

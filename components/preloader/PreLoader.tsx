@@ -518,7 +518,7 @@ export function PreLoader() {
         <div
           ref={polygonWrapperRef}
           data-scroll-polygon
-          className={`invisible fixed bottom-[calc(var(--section-nav-height,0px)+1.25rem)] right-5 size-14 [backface-visibility:visible] md:bottom-12 md:right-8 md:size-22 lg:bottom-20 lg:right-16 ${
+          className={`invisible fixed bottom-15 right-6 size-14 [backface-visibility:visible] md:bottom-12 md:right-8 md:size-22 lg:bottom-20 lg:right-16 ${
             isInteractive ? "pointer-events-auto" : "pointer-events-none"
           }`}
         >

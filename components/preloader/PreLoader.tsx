@@ -23,10 +23,10 @@ import { playBackgroundMusicWithSound } from "@/lib/audio/backgroundMusic";
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
 /** Center stage size while the polygon stroke is drawing. */
-const POLYGON_LOADING_SIZE_MOBILE = 160;
+const POLYGON_LOADING_SIZE_MOBILE = 120;
 const POLYGON_LOADING_SIZE_DESKTOP = 250;
 /** Corner mark size after the curtain lifts. */
-const POLYGON_END_SIZE = 88;
+const POLYGON_END_SIZE = 60;
 const POLYGON_DRAW_DURATION = 2;
 const LOGO_REVEAL_DURATION = 0.85;
 const TRANSITION_DURATION = 2.2;

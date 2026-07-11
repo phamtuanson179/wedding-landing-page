@@ -2,7 +2,11 @@ import gsap from "gsap";
 import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { SECTION_IDS } from "@/lib/scroll/cornerNav";
+import {
+  SECTION_IDS,
+  isMobileViewport,
+  isTouchDevice,
+} from "@/lib/scroll/cornerNav";
 
 gsap.registerPlugin(ScrollToPlugin, ScrollTrigger);
 
@@ -70,6 +74,46 @@ export function getActiveSectionIndex(thresholdRatio = 0.5) {
   return current;
 }
 
+function getPageScrollY() {
+  return (
+    window.scrollY ||
+    window.pageYOffset ||
+    document.documentElement.scrollTop ||
+    document.body.scrollTop ||
+    0
+  );
+}
+
+function nativeScrollToElement(
+  target: HTMLElement,
+  behavior: ScrollBehavior,
+) {
+  const top = Math.max(
+    0,
+    target.getBoundingClientRect().top + getPageScrollY(),
+  );
+
+  const scrollingElement =
+    (document.scrollingElement as HTMLElement | null) ??
+    document.documentElement;
+
+  try {
+    window.scrollTo({ top, behavior });
+  } catch {
+    scrollingElement.scrollTop = top;
+  }
+
+  // iOS sometimes ignores the first smooth scrollTo — reinforce next frame.
+  if (behavior === "smooth") {
+    window.requestAnimationFrame(() => {
+      const drift = Math.abs(getPageScrollY() - top);
+      if (drift > 24) {
+        window.scrollTo({ top, behavior: "smooth" });
+      }
+    });
+  }
+}
+
 export function scrollToSection(sectionId: string) {
   const target = document.getElementById(sectionId);
   if (!target) {
@@ -87,8 +131,10 @@ export function scrollToSection(sectionId: string) {
     return;
   }
 
-  if (prefersReducedMotion) {
-    target.scrollIntoView({ behavior: "auto", block: "start" });
+  // iOS / touch: GSAP ScrollTo + autoKill often no-ops or gets killed by
+  // rubber-banding. Native scroll is the reliable path.
+  if (isTouchDevice() || isMobileViewport() || prefersReducedMotion) {
+    nativeScrollToElement(target, prefersReducedMotion ? "auto" : "smooth");
     return;
   }
 
@@ -96,8 +142,8 @@ export function scrollToSection(sectionId: string) {
     duration: 1.2,
     ease: "power3.inOut",
     scrollTo: {
-      y: `#${sectionId}`,
-      autoKill: true,
+      y: target,
+      autoKill: false,
       offsetY: 0,
     },
     overwrite: true,

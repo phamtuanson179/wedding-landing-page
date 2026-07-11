@@ -111,6 +111,9 @@ export function SectionNav() {
       ScrollTrigger.refresh();
     };
 
+    // Enable taps after paint — don't wait for entrance tween (iOS can stall).
+    const enableTaps = window.setTimeout(() => setInteractive(true), 0);
+
     // Hide before first paint of this mount — prevents the flash.
     gsap.set(nav, { yPercent: 100, autoAlpha: 0 });
     gsap.set(items, { y: 8, autoAlpha: 0 });
@@ -119,9 +122,9 @@ export function SectionNav() {
     if (reducedMotion) {
       gsap.set(nav, { yPercent: 0, autoAlpha: 1 });
       gsap.set(items, { y: 0, autoAlpha: 1 });
-      setInteractive(true);
       window.addEventListener("resize", syncHeight);
       return () => {
+        window.clearTimeout(enableTaps);
         window.removeEventListener("resize", syncHeight);
         syncSectionNavHeightVar(false);
         setInteractive(false);
@@ -130,7 +133,6 @@ export function SectionNav() {
 
     const timeline = gsap.timeline({
       defaults: { ease: "power3.out" },
-      onComplete: () => setInteractive(true),
     });
 
     timeline
@@ -154,6 +156,7 @@ export function SectionNav() {
     window.addEventListener("resize", syncHeight);
 
     return () => {
+      window.clearTimeout(enableTaps);
       timeline.kill();
       window.removeEventListener("resize", syncHeight);
       syncSectionNavHeightVar(false);
@@ -198,13 +201,14 @@ export function SectionNav() {
                 aria-current={isActive ? "true" : undefined}
                 title={item.label}
                 tabIndex={interactive ? 0 : -1}
-                onClick={() => {
+                onClick={(event) => {
+                  event.preventDefault();
                   scrollToSection(item.id);
                   window.setTimeout(() => {
                     setActiveIndex(getActiveSectionIndex(0.5));
-                  }, 50);
+                  }, 120);
                 }}
-                className={`group relative flex h-full w-full flex-col items-center justify-center gap-0.5 px-1 transition-colors duration-300 md:flex-row md:gap-1.5 md:px-2 ${
+                className={`group relative flex h-full w-full flex-col items-center justify-center gap-0.5 px-1 transition-colors duration-300 md:flex-row md:gap-1.5 md:px-2 [-webkit-tap-highlight-color:transparent] ${
                   isActive
                     ? onDark
                       ? "text-background"

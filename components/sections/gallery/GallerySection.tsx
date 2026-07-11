@@ -478,7 +478,9 @@ export function GallerySection() {
       stack && typeof ResizeObserver !== "undefined"
         ? new ResizeObserver(updateGalleryMetrics)
         : null;
-    resizeObserver?.observe(stack);
+    if (stack && resizeObserver) {
+      resizeObserver.observe(stack);
+    }
 
     window.addEventListener("resize", updateGalleryMetrics);
     window.addEventListener("sectionnav:height", updateGalleryMetrics);

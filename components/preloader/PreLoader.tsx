@@ -3,12 +3,15 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { CornerLabels } from "./CornerLabels";
+import { MonogramLogoSvg } from "./MonogramLogoSvg";
 import { PolygonSvg } from "./PolygonSvg";
-import { ScrollArrowSvg } from "./ScrollArrowSvg";
 
 import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { dispatchHeroEntranceStart, HERO_ENTRANCE_COMPLETE } from "@/components/sections/hero/heroEntrance";
+import {
+  dispatchHeroEntranceStart,
+  HERO_ENTRANCE_COMPLETE,
+} from "@/components/sections/hero/heroEntrance";
 import {
   ensureCornerChromeVisible,
   preparePreloaderChrome,
@@ -16,14 +19,23 @@ import {
 } from "@/lib/scroll/cornerNav";
 import { setPreloaderPolygonAnimating } from "@/lib/preloader/preloaderState";
 import { playBackgroundMusicWithSound } from "@/lib/audio/backgroundMusic";
-import { scrollToNextSection } from "@/lib/scroll/sectionNav";
 
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
 
-const LOADING_DURATION = 2;
-const TRANSITION_DURATION = 2.2;
+/** Center stage size while the polygon stroke is drawing. */
+const POLYGON_LOADING_SIZE_MOBILE = 160;
+const POLYGON_LOADING_SIZE_DESKTOP = 250;
+/** Corner mark size after the curtain lifts. */
 const POLYGON_END_SIZE = 88;
-const POLYGON_LOADING_SIZE = 176;
+const POLYGON_DRAW_DURATION = 2;
+const LOGO_REVEAL_DURATION = 0.85;
+const TRANSITION_DURATION = 2.2;
+
+function getPolygonLoadingSize() {
+  return window.matchMedia("(min-width: 768px)").matches
+    ? POLYGON_LOADING_SIZE_DESKTOP
+    : POLYGON_LOADING_SIZE_MOBILE;
+}
 
 function getViewportMetrics() {
   const visualViewport = window.visualViewport;
@@ -45,7 +57,7 @@ function getViewportMetrics() {
   };
 }
 
-function getPolygonCenterOffset(wrapper: HTMLElement) {
+function getCenterOffset(wrapper: HTMLElement) {
   const rect = wrapper.getBoundingClientRect();
   const viewport = getViewportMetrics();
   const centerX = viewport.offsetLeft + viewport.width / 2;
@@ -59,22 +71,20 @@ function getPolygonCenterOffset(wrapper: HTMLElement) {
 
 type PreloaderElements = {
   loader: HTMLElement;
-  polygonWrapper: HTMLDivElement;
+  markWrapper: HTMLDivElement;
   polygon: SVGPolygonElement;
-  arrowInner: HTMLDivElement;
-  arrowBounce: HTMLDivElement;
+  logoMark: HTMLElement;
 };
 
 function setInitialState({
   loader,
-  polygonWrapper,
+  markWrapper,
   polygon,
-  arrowInner,
-  arrowBounce,
+  logoMark,
 }: PreloaderElements) {
-  gsap.set(polygonWrapper, {
-    width: POLYGON_LOADING_SIZE,
-    height: POLYGON_LOADING_SIZE,
+  gsap.set(markWrapper, {
+    width: getPolygonLoadingSize(),
+    height: getPolygonLoadingSize(),
     scale: 1,
     x: 0,
     y: 0,
@@ -84,25 +94,32 @@ function setInitialState({
     visibility: "hidden",
   });
 
-  void polygonWrapper.offsetHeight;
+  void markWrapper.offsetHeight;
 
-  const centerOffset = getPolygonCenterOffset(polygonWrapper);
+  const centerOffset = getCenterOffset(markWrapper);
   const strokeLength = polygon.getTotalLength();
 
-  gsap.set(loader, { yPercent: 0 });
-  gsap.set(polygonWrapper, {
+  gsap.set(loader, { yPercent: 0, autoAlpha: 1 });
+  gsap.set(markWrapper, {
     x: centerOffset.x,
     y: centerOffset.y,
     autoAlpha: 1,
     visibility: "visible",
   });
+
   gsap.set(polygon, {
     strokeDasharray: strokeLength,
     strokeDashoffset: strokeLength,
     strokeOpacity: 1,
   });
-  gsap.set(arrowInner, { autoAlpha: 0, visibility: "hidden" });
-  gsap.set(arrowBounce, { y: 0 });
+
+  // Logo waits until the polygon closes, then rises in.
+  gsap.set(logoMark, {
+    autoAlpha: 0,
+    y: 18,
+    scale: 1,
+    transformOrigin: "50% 50%",
+  });
 
   return { strokeLength };
 }
@@ -110,20 +127,19 @@ function setInitialState({
 function createReducedMotionExitTimeline(
   elements: PreloaderElements,
   onComplete: () => void,
-  onArrowReveal: () => void,
 ) {
-  const { loader, polygonWrapper, polygon, arrowInner } = elements;
+  const { loader, markWrapper, polygon } = elements;
 
   return gsap
     .timeline({ onComplete })
     .to(loader, { yPercent: -100, duration: 0.4, ease: "power2.inOut" })
     .to(
-      polygonWrapper,
+      markWrapper,
       { x: 0, y: 0, scale: 1, duration: 0.4, ease: "power2.inOut" },
       0,
     )
     .to(
-      polygonWrapper,
+      markWrapper,
       {
         width: POLYGON_END_SIZE,
         height: POLYGON_END_SIZE,
@@ -132,18 +148,75 @@ function createReducedMotionExitTimeline(
       },
       0,
     )
-    .set(polygon, { strokeOpacity: 0.1 }, 0.2)
-    .to(
-      arrowInner,
+    .set(polygon, { strokeOpacity: 0.18 }, 0.2);
+}
+
+/**
+ * Non-linear stroke progress — same start point every time, but cadence
+ * mimics real loading (bursts, slowdowns) instead of a flat metronome.
+ */
+function appendOrganicPolygonDraw(
+  timeline: gsap.core.Timeline,
+  polygon: SVGPolygonElement,
+  strokeLength: number,
+  totalDuration: number,
+  at = 0,
+) {
+  const stepCount = 6 + Math.floor(Math.random() * 3); // 6–8 segments
+  // Bias: early segments often quicker, mid can stall, late finishes strong
+  const weights = Array.from({ length: stepCount }, (_, i) => {
+    const t = i / (stepCount - 1);
+    const base = 0.45 + Math.random() * 0.9;
+    // Occasionally inject a “stall” or a “rush”
+    const stall = Math.random() < 0.22 ? 1.6 + Math.random() : 1;
+    const rush = Math.random() < 0.18 ? 0.45 + Math.random() * 0.25 : 1;
+    // Slight ease-in-out bias across the whole load
+    const curve = 0.75 + Math.sin(t * Math.PI) * 0.55;
+    return base * stall * rush * curve;
+  });
+  const weightSum = weights.reduce((sum, w) => sum + w, 0);
+
+  let elapsed = at;
+  let drawn = 0;
+
+  weights.forEach((weight, index) => {
+    const portion = weight / weightSum;
+    const nextDrawn = index === stepCount - 1 ? 1 : Math.min(0.999, drawn + portion);
+    const duration = Math.max(0.06, portion * totalDuration);
+    const easePool = [
+      "none",
+      "power1.in",
+      "power1.out",
+      "power2.inOut",
+      "sine.inOut",
+    ] as const;
+    const ease = easePool[Math.floor(Math.random() * easePool.length)];
+
+    timeline.to(
+      polygon,
       {
-        autoAlpha: 1,
-        visibility: "visible",
-        duration: 0.35,
-        ease: "power2.out",
-        onComplete: onArrowReveal,
+        strokeDashoffset: strokeLength * (1 - nextDrawn),
+        duration,
+        ease,
       },
-      0.4,
+      elapsed,
     );
+
+    drawn = nextDrawn;
+    elapsed += duration;
+  });
+
+  timeline.to(
+    polygon,
+    {
+      strokeDashoffset: 0,
+      duration: 0.06,
+      ease: "power1.out",
+    },
+    Math.max(elapsed, at + totalDuration) - 0.06,
+  );
+
+  return at + totalDuration;
 }
 
 function createLoadingTimeline(
@@ -151,28 +224,39 @@ function createLoadingTimeline(
   strokeLength: number,
   onReady: () => void,
 ) {
-  const { polygon } = elements;
+  const { polygon, logoMark } = elements;
+  const timeline = gsap.timeline({ onComplete: onReady });
 
-  return gsap
-    .timeline({ onComplete: onReady })
-    .fromTo(
-      polygon,
-      { strokeDashoffset: strokeLength },
-      {
-        strokeDashoffset: 0,
-        duration: LOADING_DURATION,
-        ease: "none",
-      },
-      0,
-    );
+  const logoAt = appendOrganicPolygonDraw(
+    timeline,
+    polygon,
+    strokeLength,
+    POLYGON_DRAW_DURATION,
+    0,
+  );
+
+  timeline.to(
+    logoMark,
+    {
+      autoAlpha: 1,
+      y: 0,
+      duration: LOGO_REVEAL_DURATION,
+      ease: "power2.out",
+    },
+    logoAt,
+  );
+
+  timeline.to({}, { duration: 0.2 });
+
+  return timeline;
 }
 
+/** Curtain lifts up; mark shrinks home to the corner as a static watermark. */
 function createExitTimeline(
   elements: PreloaderElements,
   onComplete: () => void,
-  onArrowReveal: () => void,
 ) {
-  const { polygon, loader, polygonWrapper, arrowInner } = elements;
+  const { polygon, loader, markWrapper, logoMark } = elements;
 
   return gsap
     .timeline({ onComplete })
@@ -186,7 +270,7 @@ function createExitTimeline(
       0,
     )
     .to(
-      polygonWrapper,
+      markWrapper,
       {
         x: 0,
         y: 0,
@@ -199,43 +283,23 @@ function createExitTimeline(
       0,
     )
     .to(
-      polygon,
+      logoMark,
       {
-        strokeOpacity: 0.1,
+        scale: 0.92,
         duration: TRANSITION_DURATION,
         ease: "power2.inOut",
       },
       0,
     )
     .to(
-      arrowInner,
+      polygon,
       {
-        autoAlpha: 1,
-        visibility: "visible",
-        duration: 0.6,
-        ease: "power2.out",
-        onComplete: onArrowReveal,
+        strokeOpacity: 0.22,
+        duration: TRANSITION_DURATION,
+        ease: "power2.inOut",
       },
-      TRANSITION_DURATION,
+      0,
     );
-}
-
-function startArrowBounce(arrowBounce: HTMLDivElement) {
-  const prefersReducedMotion = window.matchMedia(
-    "(prefers-reduced-motion: reduce)",
-  ).matches;
-
-  if (prefersReducedMotion) {
-    return null;
-  }
-
-  return gsap.to(arrowBounce, {
-    y: 8,
-    duration: 1.2,
-    ease: "power1.inOut",
-    repeat: -1,
-    yoyo: true,
-  });
 }
 
 function startScrollExplorePulse(scrollHint: HTMLElement) {
@@ -260,69 +324,27 @@ function startScrollExplorePulse(scrollHint: HTMLElement) {
 }
 
 export function PreLoader() {
-  const [isInteractive, setIsInteractive] = useState(false);
   const [awaitingEnter, setAwaitingEnter] = useState(false);
   const loaderRef = useRef<HTMLElement>(null);
-  const polygonWrapperRef = useRef<HTMLDivElement>(null);
-  const polygonSpinRef = useRef<HTMLDivElement>(null);
+  const markWrapperRef = useRef<HTMLDivElement>(null);
   const polygonRef = useRef<SVGPolygonElement>(null);
-  const arrowInnerRef = useRef<HTMLDivElement>(null);
-  const arrowBounceRef = useRef<HTMLDivElement>(null);
-  const polygonHoverTweenRef = useRef<gsap.core.Tween | null>(null);
-  const arrowBounceTweenRef = useRef<gsap.core.Tween | null>(null);
+  const logoMarkRef = useRef<HTMLDivElement>(null);
   const scrollHintTweenRef = useRef<gsap.core.Tween | null>(null);
 
-  const handlePolygonHoverStart = () => {
-    const spin = polygonSpinRef.current;
-    if (!spin) {
-      return;
-    }
-
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    polygonHoverTweenRef.current?.kill();
-    polygonHoverTweenRef.current = gsap.to(spin, {
-      rotation: prefersReducedMotion ? 12 : 360,
-      duration: prefersReducedMotion ? 0.45 : 14,
-      ease: prefersReducedMotion ? "power2.out" : "none",
-      repeat: prefersReducedMotion ? 0 : -1,
-      transformOrigin: "50% 50%",
-      overwrite: true,
-    });
-  };
-
-  const handlePolygonHoverEnd = () => {
-    const spin = polygonSpinRef.current;
-    if (!spin) {
-      return;
-    }
-
-    polygonHoverTweenRef.current?.kill();
-    polygonHoverTweenRef.current = gsap.to(spin, {
-      rotation: 0,
-      duration: 0.7,
-      ease: "power2.out",
-      overwrite: true,
-    });
-  };
-
   useLayoutEffect(() => {
+    const logoMark = logoMarkRef.current;
     const elements: PreloaderElements = {
       loader: loaderRef.current as HTMLElement,
-      polygonWrapper: polygonWrapperRef.current as HTMLDivElement,
+      markWrapper: markWrapperRef.current as HTMLDivElement,
       polygon: polygonRef.current as SVGPolygonElement,
-      arrowInner: arrowInnerRef.current as HTMLDivElement,
-      arrowBounce: arrowBounceRef.current as HTMLDivElement,
+      logoMark: logoMark as HTMLElement,
     };
 
     if (
       !elements.loader ||
-      !elements.polygonWrapper ||
+      !elements.markWrapper ||
       !elements.polygon ||
-      !elements.arrowInner ||
-      !elements.arrowBounce
+      !elements.logoMark
     ) {
       return;
     }
@@ -364,7 +386,11 @@ export function PreLoader() {
 
     const finishPreloader = () => {
       setPreloaderPolygonAnimating(false);
-      gsap.set(elements.polygonWrapper, {
+      gsap.set(elements.loader, {
+        yPercent: -100,
+        autoAlpha: 1,
+      });
+      gsap.set(elements.markWrapper, {
         width: POLYGON_END_SIZE,
         height: POLYGON_END_SIZE,
         x: 0,
@@ -372,6 +398,12 @@ export function PreLoader() {
         scale: 1,
         autoAlpha: 1,
       });
+      gsap.set(elements.logoMark, {
+        y: 0,
+        scale: 0.92,
+        autoAlpha: 1,
+      });
+      gsap.set(elements.polygon, { strokeOpacity: 0.22 });
       setCornerNavColor("hero");
       ensureCornerChromeVisible();
       restoreScrollState();
@@ -384,18 +416,7 @@ export function PreLoader() {
       elements.loader.setAttribute("aria-hidden", "true");
       elements.loader.style.pointerEvents = "none";
       setAwaitingEnter(false);
-      setIsInteractive(true);
       dispatchHeroEntranceStart();
-    };
-
-    const revealArrow = () => {
-      const arrowContainer = elements.arrowInner.parentElement;
-      if (arrowContainer) {
-        arrowContainer.style.overflow = "visible";
-      }
-
-      arrowBounceTweenRef.current?.kill();
-      arrowBounceTweenRef.current = startArrowBounce(elements.arrowBounce);
     };
 
     const beginExit = () => {
@@ -408,16 +429,11 @@ export function PreLoader() {
       elements.loader.style.cursor = "default";
 
       exitTimeline = prefersReducedMotion
-        ? createReducedMotionExitTimeline(
-            elements,
-            finishPreloader,
-            revealArrow,
-          )
-        : createExitTimeline(elements, finishPreloader, revealArrow);
+        ? createReducedMotionExitTimeline(elements, finishPreloader)
+        : createExitTimeline(elements, finishPreloader);
     };
 
     const onEnterGesture = () => {
-      // Start music inside the same user gesture — required by browsers.
       playBackgroundMusicWithSound();
       musicStarted = true;
 
@@ -434,7 +450,6 @@ export function PreLoader() {
         return;
       }
 
-      // Wait for a tap to open the invite + unlock audio.
       setAwaitingEnter(true);
       elements.loader.style.cursor = "pointer";
     };
@@ -443,6 +458,8 @@ export function PreLoader() {
       const { strokeLength } = setInitialState(elements);
 
       if (prefersReducedMotion) {
+        gsap.set(elements.polygon, { strokeDashoffset: 0, strokeOpacity: 1 });
+        gsap.set(elements.logoMark, { autoAlpha: 1, y: 0, scale: 1 });
         onLoadingReady();
         return;
       }
@@ -481,8 +498,6 @@ export function PreLoader() {
         HERO_ENTRANCE_COMPLETE,
         handleHeroEntranceComplete,
       );
-      polygonHoverTweenRef.current?.kill();
-      arrowBounceTweenRef.current?.kill();
       scrollHintTweenRef.current?.kill();
       setPreloaderPolygonAnimating(false);
       loadingTimeline?.kill();
@@ -515,36 +530,25 @@ export function PreLoader() {
       >
         <CornerLabels />
 
+        {/* Static corner watermark — brand seal only, no click/hover */}
         <div
-          ref={polygonWrapperRef}
+          ref={markWrapperRef}
           data-scroll-polygon
-          className={`invisible fixed bottom-15 right-6 size-14 [backface-visibility:visible] md:bottom-12 md:right-8 md:size-22 lg:bottom-20 lg:right-16 ${
-            isInteractive ? "pointer-events-auto" : "pointer-events-none"
-          }`}
+          aria-hidden="true"
+          className="pointer-events-none invisible fixed bottom-15 right-6 size-14 overflow-visible [backface-visibility:visible] md:bottom-12 md:right-8 md:size-22 lg:bottom-20 lg:right-16"
         >
-          <button
-            type="button"
-            aria-label="Scroll to next section"
-            disabled={!isInteractive}
-            onClick={scrollToNextSection}
-            onMouseEnter={handlePolygonHoverStart}
-            onMouseLeave={handlePolygonHoverEnd}
-            onFocus={handlePolygonHoverStart}
-            onBlur={handlePolygonHoverEnd}
-            className="group relative size-full cursor-pointer bg-transparent disabled:cursor-default"
-          >
-            <div ref={polygonSpinRef} className="size-full">
+          <div className="relative size-full">
+            <div className="absolute inset-0 opacity-80" aria-hidden>
               <PolygonSvg ref={polygonRef} />
             </div>
 
-            <div className="pointer-events-none absolute left-1/2 top-1/2 h-[220%] w-8 -translate-x-1/2 -translate-y-1/2 overflow-hidden">
-              <div ref={arrowInnerRef} className="h-full">
-                <div ref={arrowBounceRef} className="h-full">
-                  <ScrollArrowSvg />
-                </div>
-              </div>
+            <div
+              ref={logoMarkRef}
+              className="absolute inset-[28%] will-change-transform md:inset-[30%]"
+            >
+              <MonogramLogoSvg className="block h-full w-full object-contain" />
             </div>
-          </button>
+          </div>
         </div>
       </div>
     </>

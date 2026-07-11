@@ -23,16 +23,21 @@ export const PolygonSvg = forwardRef<SVGPolygonElement>(function PolygonSvg(
     >
       <polygon
         points={DECAGON_POINTS}
+        fill="var(--color-primary)"
+        stroke="none"
+      />
+      <polygon
+        points={DECAGON_POINTS}
         stroke="currentColor"
         strokeOpacity={0.25}
-        strokeWidth="1.5"
+        strokeWidth="1"
         fill="none"
       />
       <polygon
         ref={ref}
         points={DECAGON_POINTS}
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1"
         strokeLinejoin="miter"
         fill="none"
       />

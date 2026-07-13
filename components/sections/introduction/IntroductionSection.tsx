@@ -42,7 +42,6 @@ const BRIDE: Person = {
 const LEFT_MASK_HIDDEN = "inset(0% 100% 0% 0%)";
 const RIGHT_MASK_HIDDEN = "inset(0% 0% 0% 100%)";
 const MASK_VISIBLE = "inset(0% 0% 0% 0%)";
-const IVORY = "#e6dfd3";
 
 function subscribeLayout(onStoreChange: () => void) {
   const motionMq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -82,57 +81,6 @@ function PersonStripBlock({
       <p className="mt-3 line-clamp-4 text-[11px] leading-relaxed font-light italic text-foreground/75 md:mt-4 md:line-clamp-5 md:text-[13px]">
         &ldquo;{person.quote}&rdquo;
       </p>
-    </div>
-  );
-}
-
-function MobileOverlayCopy({
-  person,
-  align = "start",
-}: {
-  person: Person;
-  align?: "start" | "end";
-}) {
-  return (
-    <div
-      data-intro-mobile-copy
-      className={`absolute inset-x-0 bottom-0 z-10 px-6 pb-[calc(1.75rem+var(--section-nav-height,0px))] pt-24 ${
-        align === "end" ? "text-right" : "text-left"
-      }`}
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/55 via-black/20 to-transparent"
-      />
-      <div className="relative">
-        <p
-          className="text-[10px] uppercase tracking-[0.28em]"
-          style={{ color: `${IVORY}99` }}
-        >
-          {person.role}
-        </p>
-        <h3
-          className="mt-2 font-display text-[clamp(1.75rem,8vw,2.5rem)] leading-[1.05]"
-          style={{ color: `${IVORY}e6` }}
-        >
-          {person.fullName}
-        </h3>
-        <p
-          className="mt-1.5 text-[11px] uppercase tracking-[0.22em]"
-          style={{ color: `${IVORY}a6` }}
-        >
-          ({person.nickname})
-        </p>
-        <p
-          className="mt-4 max-w-[22rem] text-sm leading-relaxed font-light italic"
-          style={{
-            color: `${IVORY}c7`,
-            marginLeft: align === "end" ? "auto" : undefined,
-          }}
-        >
-          &ldquo;{person.quote}&rdquo;
-        </p>
-      </div>
     </div>
   );
 }
@@ -401,7 +349,66 @@ function IntroDesktop({
   );
 }
 
-/** Mobile — stacked full-bleed panels + ivory type overlay */
+function MobileRowCopy({
+  person,
+  align = "start",
+}: {
+  person: Person;
+  align?: "start" | "end";
+}) {
+  return (
+    <div
+      data-intro-mobile-copy
+      className={`px-0.5 ${
+        align === "end" ? "text-right" : "text-left"
+      }`}
+    >
+      <p className="text-[9px] uppercase tracking-[0.28em] text-foreground/50">
+        {person.role}
+      </p>
+      <h3 className="mt-1.5 font-display text-[clamp(1.15rem,5.2vw,1.45rem)] leading-[1.08] text-foreground">
+        {person.fullName}
+      </h3>
+      <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-primary">
+        ({person.nickname})
+      </p>
+      <p className="mt-2.5 line-clamp-4 text-[11px] leading-relaxed font-light italic text-foreground/72">
+        &ldquo;{person.quote}&rdquo;
+      </p>
+    </div>
+  );
+}
+
+function MobilePortrait({
+  person,
+  side,
+}: {
+  person: Person;
+  side: "groom" | "bride";
+}) {
+  return (
+    <div
+      data-intro-mobile-mask
+      data-side={side}
+      className="relative aspect-3/4 w-full overflow-hidden bg-foreground/8"
+    >
+      <div
+        data-intro-mobile-image
+        className="absolute inset-[-8%] will-change-transform"
+      >
+        <Image
+          src={person.image}
+          alt={person.fullName}
+          fill
+          sizes="48vw"
+          className={`object-cover ${person.imagePosition} saturate-[0.8] brightness-[0.9]`}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** Mobile — parallel rows: photos side-by-side, then text blocks under each */
 function IntroMobile({
   sectionRef,
   reducedMotion = false,
@@ -409,76 +416,96 @@ function IntroMobile({
   sectionRef: React.RefObject<HTMLElement | null>;
   reducedMotion?: boolean;
 }) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const photosRef = useRef<HTMLDivElement>(null);
+  const copyRef = useRef<HTMLDivElement>(null);
+  const ampersandRef = useRef<HTMLSpanElement>(null);
+
   useLayoutEffect(() => {
     const section = sectionRef.current;
-    if (!section || reducedMotion) {
+    const title = titleRef.current;
+    const photos = photosRef.current;
+    const copyRow = copyRef.current;
+    const ampersand = ampersandRef.current;
+
+    if (!section || !title || !photos || !copyRow || !ampersand) {
+      return;
+    }
+
+    if (reducedMotion) {
+      gsap.set(ampersand, { autoAlpha: 0.12 });
       return;
     }
 
     const scroller = getScroller();
-    const panels = Array.from(
-      section.querySelectorAll<HTMLElement>("[data-intro-mobile-panel]"),
-    );
     const timelines: gsap.core.Timeline[] = [];
     const tweens: gsap.core.Tween[] = [];
 
-    panels.forEach((panel) => {
-      const mask = panel.querySelector<HTMLElement>("[data-intro-mobile-mask]");
-      const image = panel.querySelector<HTMLElement>("[data-intro-mobile-image]");
-      const copy = panel.querySelector<HTMLElement>("[data-intro-mobile-copy]");
-      const side = panel.dataset.side;
+    const masks = Array.from(
+      photos.querySelectorAll<HTMLElement>("[data-intro-mobile-mask]"),
+    );
+    const images = Array.from(
+      photos.querySelectorAll<HTMLElement>("[data-intro-mobile-image]"),
+    );
+    const copies = Array.from(
+      copyRow.querySelectorAll<HTMLElement>("[data-intro-mobile-copy]"),
+    );
 
-      if (!mask || !image || !copy) {
-        return;
-      }
+    if (masks.length < 2 || images.length < 2 || copies.length < 2) {
+      return;
+    }
 
-      const hidden =
-        side === "groom" ? LEFT_MASK_HIDDEN : RIGHT_MASK_HIDDEN;
+    gsap.set(title, { y: 20, autoAlpha: 0 });
+    gsap.set(ampersand, { autoAlpha: 0 });
+    gsap.set(masks[0], { clipPath: LEFT_MASK_HIDDEN });
+    gsap.set(masks[1], { clipPath: RIGHT_MASK_HIDDEN });
+    gsap.set(images, { scale: 1.08 });
+    gsap.set(copies, { y: 22, autoAlpha: 0 });
 
-      gsap.set(mask, { clipPath: hidden });
-      gsap.set(image, { scale: 1 });
-      gsap.set(copy, { y: 28, autoAlpha: 0 });
-
-      const entrance = gsap.timeline({
-        scrollTrigger: {
-          trigger: panel,
-          start: "top 75%",
-          scroller,
-          toggleActions: "play none none reverse",
-          invalidateOnRefresh: true,
-        },
-      });
-
-      entrance
-        .to(mask, {
-          clipPath: MASK_VISIBLE,
-          duration: 1.15,
-          ease: "power3.inOut",
-        })
-        .to(
-          copy,
-          { y: 0, autoAlpha: 1, duration: 0.7, ease: "power2.out" },
-          0.65,
-        );
-
-      const kenBurns = gsap.to(image, {
-        scale: 1.08,
-        duration: 10,
-        ease: "sine.inOut",
-        yoyo: true,
-        repeat: -1,
-        paused: true,
-      });
-
-      entrance.eventCallback("onComplete", () => kenBurns.play(0));
-      entrance.eventCallback("onReverseComplete", () => {
-        kenBurns.pause(0);
-        gsap.set(image, { scale: 1 });
-      });
-
-      timelines.push(entrance);
-      tweens.push(kenBurns);
+    const entrance = gsap.timeline({
+      scrollTrigger: {
+        trigger: section,
+        start: "top 78%",
+        scroller,
+        toggleActions: "play none none reverse",
+        invalidateOnRefresh: true,
+      },
     });
+    timelines.push(entrance);
+
+    entrance
+      .to(title, { y: 0, autoAlpha: 1, duration: 0.65, ease: "power3.out" }, 0)
+      .to(
+        ampersand,
+        { autoAlpha: 0.14, duration: 1.2, ease: "power2.out" },
+        0.15,
+      )
+      .to(
+        masks[0],
+        { clipPath: MASK_VISIBLE, duration: 1.05, ease: "power3.inOut" },
+        0.2,
+      )
+      .to(
+        masks[1],
+        { clipPath: MASK_VISIBLE, duration: 1.05, ease: "power3.inOut" },
+        0.32,
+      )
+      .to(
+        images,
+        { scale: 1, duration: 1.05, ease: "power3.out", stagger: 0.12 },
+        0.2,
+      )
+      .to(
+        copies,
+        {
+          y: 0,
+          autoAlpha: 1,
+          duration: 0.65,
+          stagger: 0.1,
+          ease: "power2.out",
+        },
+        0.85,
+      );
 
     const refresh = () => ScrollTrigger.refresh();
     window.addEventListener("resize", refresh);
@@ -488,55 +515,47 @@ function IntroMobile({
       timelines.forEach((tl) => tl.kill());
       tweens.forEach((tween) => tween.kill());
     };
-  }, [reducedMotion]);
+  }, [reducedMotion, sectionRef]);
 
   return (
     <section
       id="section-2"
       ref={sectionRef}
-      className="relative overflow-hidden bg-background text-foreground"
+      className="relative flex min-h-dvh flex-col overflow-hidden bg-background text-foreground"
     >
-      <header className="px-5 pt-10 pb-6 text-center">
+      <header className="shrink-0 px-5 pt-10 pb-5 text-center">
         <p className="text-[10px] uppercase tracking-[0.28em] text-foreground/60">
           Giới thiệu
         </p>
-        <h2 className="mt-2 font-display text-[clamp(1.35rem,6vw,1.85rem)] leading-tight text-foreground">
+        <h2
+          ref={titleRef}
+          className="mt-2 font-display text-[clamp(1.35rem,6vw,1.85rem)] leading-tight text-foreground"
+        >
           Hai người, một hành trình
         </h2>
       </header>
 
-      {(
-        [
-          { person: GROOM, side: "groom" as const, align: "start" as const },
-          { person: BRIDE, side: "bride" as const, align: "end" as const },
-        ] as const
-      ).map(({ person, side, align }) => (
-        <div
-          key={side}
-          data-intro-mobile-panel
-          data-side={side}
-          className="relative h-[100dvh] min-h-[560px] w-full overflow-hidden"
+      <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col justify-center gap-4 px-4 pb-[calc(1.25rem+var(--section-nav-height,0px))]">
+        <span
+          ref={ampersandRef}
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-[52%] z-0 -translate-x-1/2 -translate-y-1/2 select-none font-display text-[clamp(9rem,48vw,16rem)] italic leading-none text-primary opacity-0"
         >
-          <div
-            data-intro-mobile-mask
-            className="absolute inset-0 overflow-hidden"
-          >
-            <div
-              data-intro-mobile-image
-              className="absolute inset-[-8%] will-change-transform"
-            >
-              <Image
-                src={person.image}
-                alt={person.fullName}
-                fill
-                sizes="100vw"
-                className={`object-cover ${person.imagePosition} saturate-[0.8] brightness-[0.9]`}
-              />
-            </div>
-          </div>
-          <MobileOverlayCopy person={person} align={align} />
+          &
+        </span>
+
+        {/* Row 1 — portraits side by side */}
+        <div ref={photosRef} className="relative z-10 grid grid-cols-2 gap-3">
+          <MobilePortrait person={GROOM} side="groom" />
+          <MobilePortrait person={BRIDE} side="bride" />
         </div>
-      ))}
+
+        {/* Row 2 — copy under each portrait */}
+        <div ref={copyRef} className="relative z-10 grid grid-cols-2 gap-3">
+          <MobileRowCopy person={GROOM} align="start" />
+          <MobileRowCopy person={BRIDE} align="end" />
+        </div>
+      </div>
     </section>
   );
 }

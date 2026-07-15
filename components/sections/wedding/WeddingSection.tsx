@@ -31,7 +31,7 @@ const WEDDING = {
   },
 } as const;
 
-const CONTENT_INSET = "px-6 md:px-14 lg:px-20 xl:px-24";
+const CONTENT_INSET = "px-4 md:px-24 lg:px-32 xl:px-36";
 
 function MapsModal({
   open,
@@ -260,14 +260,14 @@ function ScheduleRow({
 
   const valueClassName =
     variant === "date"
-      ? "font-display text-[clamp(1.75rem,5.5vw,4.5rem)] leading-none text-background"
-      : "font-display text-[clamp(2.5rem,8vw,5.5rem)] leading-none text-background will-change-transform";
+      ? "font-display text-[clamp(1.45rem,4.2vw,3.5rem)] leading-none text-background"
+      : "font-display text-[clamp(2rem,6.2vw,4.5rem)] leading-none text-background will-change-transform";
 
   return (
     <div
       ref={rowRef}
       data-wedding-row={dataAttr}
-      className={`grid grid-cols-2 items-end gap-4 border-b border-background/10 py-8 md:py-10 ${
+      className={`grid grid-cols-2 items-end gap-3 border-b border-background/10 py-4 md:gap-4 md:py-5 lg:py-8 ${
         hoverable ? "cursor-default" : "pointer-events-none"
       }`}
       onMouseEnter={hoverable ? handleEnter : undefined}
@@ -276,10 +276,10 @@ function ScheduleRow({
       onBlur={hoverable ? handleLeave : undefined}
     >
       <div>
-        <p className="font-display text-xl italic text-background/92 md:text-2xl lg:text-3xl">
+        <p className="font-display text-lg italic text-background/92 md:text-xl lg:text-3xl">
           {label}
         </p>
-        <p className="mt-1 text-[11px] uppercase tracking-[0.22em] text-background/45 md:text-xs">
+        <p className="mt-0.5 text-[10px] uppercase tracking-[0.22em] text-background/45 md:mt-1 md:text-xs">
           {sublabel}
         </p>
       </div>
@@ -293,7 +293,7 @@ function ScheduleRow({
           {time}
         </p>
         {note ? (
-          <p className="mt-2 text-[11px] text-background/45 md:text-xs">{note}</p>
+          <p className="mt-1.5 text-[10px] text-background/45 md:mt-2 md:text-xs">{note}</p>
         ) : null}
       </div>
     </div>
@@ -413,7 +413,7 @@ export function WeddingSection() {
         className="relative flex h-dvh min-h-dvh flex-col overflow-hidden bg-[#0a0a0a] text-background"
       >
         <div
-          className={`mx-auto flex h-full w-full max-w-7xl flex-col justify-between pt-6 pb-[calc(2rem+var(--section-nav-height,0px))] md:pt-8 md:pb-[calc(2.5rem+var(--section-nav-height,0px))] ${CONTENT_INSET}`}
+          className={`mx-auto flex h-full w-full max-w-7xl flex-col justify-between pt-4 pb-[calc(1.25rem+var(--section-nav-height,0px))] md:pt-6 md:pb-[calc(1.75rem+var(--section-nav-height,0px))] lg:pt-8 lg:pb-[calc(2.5rem+var(--section-nav-height,0px))] ${CONTENT_INSET}`}
         >
           <div className="flex min-h-0 flex-1 flex-col justify-center">
             <ScheduleRow
@@ -451,16 +451,16 @@ export function WeddingSection() {
 
           <div
             ref={venueRef}
-            className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,100px)] items-end gap-6 pt-8 md:pt-10"
+            className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,100px)] items-end gap-4 pt-4 md:gap-6 md:pt-5 lg:pt-8"
           >
-            <div className="max-w-md">
-              <h3 className="font-display text-[clamp(1.5rem,4vw,2.75rem)] leading-tight text-background">
+            <div className="">
+              <h3 className="font-display text-[clamp(1.25rem,3.2vw,2.5rem)] leading-tight text-background">
                 {WEDDING.venue.name}
               </h3>
-              <p className="mt-2 text-sm text-background/58 md:text-base">
+              <p className="mt-1.5 text-sm text-background/58 md:mt-2 md:text-base">
                 {WEDDING.venue.address}
               </p>
-              <div className="mt-5 flex flex-wrap gap-3">
+              <div className="mt-3 flex flex-wrap gap-3 md:mt-5">
                 <button
                   type="button"
                   onClick={() => setMapsOpen(true)}
@@ -480,10 +480,10 @@ export function WeddingSection() {
             </div>
 
             <div className="text-right">
-              <p className="font-display text-xl italic text-background/92 md:text-2xl lg:text-3xl">
+              <p className="font-display text-lg italic text-background/92 md:text-xl lg:text-3xl">
                 Place
               </p>
-              <p className="mt-1 text-[11px] uppercase tracking-[0.22em] text-background/45 md:text-xs">
+              <p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-background/45 md:text-xs">
                 Địa điểm
               </p>
             </div>

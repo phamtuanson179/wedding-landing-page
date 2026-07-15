@@ -25,7 +25,7 @@ export const MOBILE_ROW_GAP = 6;
 /** @deprecated Use FRAME_GAP — kept for imports that expect GALLERY_GAP */
 export const GALLERY_GAP = FRAME_GAP;
 export const MOBILE_GALLERY_GAP = MOBILE_FRAME_GAP;
-export const ROW_HEIGHT_RATIO = 0.22;
+export const ROW_HEIGHT_RATIO = 0.165;
 export const FILM_RAIL_HEIGHT = 11;
 
 export function getFilmstripRowHeight(apertureHeight: number) {

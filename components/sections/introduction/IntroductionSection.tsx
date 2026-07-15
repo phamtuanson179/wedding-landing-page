@@ -326,7 +326,7 @@ function IntroDesktop({
       {/* Ivory shutter spine — stays put; copy slides in */}
       <div
         ref={stripRef}
-        className="absolute top-1/2 left-1/2 z-10 flex h-[min(72dvh,640px)] w-[min(28vw,280px)] -translate-x-1/2 -translate-y-1/2 flex-col justify-between bg-background px-5 py-7 shadow-[0_0_48px_rgba(26,26,26,0.14)] lg:w-[min(24vw,300px)] lg:px-6 lg:py-8"
+        className="absolute top-1/2 left-1/2 z-10 flex h-[min(58dvh,520px)] w-[min(35vw,400px)] 2xl:w-[min(30vw,300px)] -translate-x-1/2 -translate-y-1/2 flex-col justify-between bg-background px-5 py-6 shadow-[0_0_48px_rgba(26,26,26,0.14)] lg:px-6 lg:py-7"
       >
         <PersonStripBlock person={GROOM} align="start" />
 

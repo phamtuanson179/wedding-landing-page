@@ -127,7 +127,7 @@ function MediaGrid({
 
   return (
     <div className={`grid h-full min-h-0 grid-cols-3 ${gap}`}>
-      <div className="relative col-span-2 min-h-0 overflow-hidden">
+      <div className='relative col-span-2 min-h-0 overflow-hidden'>
         <StoryImage
           src={hero}
           sizes={compact ? "70vw" : "40vw"}
@@ -135,10 +135,10 @@ function MediaGrid({
         />
       </div>
       <div className={`flex min-h-0 flex-col ${gap}`}>
-        <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div className='relative min-h-0 flex-1 overflow-hidden'>
           <StoryImage src={detailA ?? hero} sizes={compact ? "30vw" : "14vw"} />
         </div>
-        <div className="relative min-h-0 flex-1 overflow-hidden">
+        <div className='relative min-h-0 flex-1 overflow-hidden'>
           <StoryImage src={detailB ?? hero} sizes={compact ? "30vw" : "14vw"} />
         </div>
       </div>
@@ -159,8 +159,8 @@ function MediaOverlap({
   const [base, inset] = images;
 
   return (
-    <div className="relative h-full min-h-0 overflow-hidden">
-      <div className="absolute inset-0">
+    <div className='relative h-full min-h-0 overflow-hidden'>
+      <div className='absolute inset-0'>
         <StoryImage
           src={base}
           sizes={compact ? "88vw" : "42vw"}
@@ -251,7 +251,7 @@ function MediaFilm({
   }, [autoplay, images.length]);
 
   return (
-    <div ref={rootRef} className="relative h-full min-h-0 overflow-hidden">
+    <div ref={rootRef} className='relative h-full min-h-0 overflow-hidden'>
       {images.map((src, i) => (
         <div
           key={`${src}-${i}`}
@@ -297,7 +297,11 @@ function StoryMedia({
   switch (panel.mediaLayout) {
     case "grid":
       return (
-        <MediaGrid images={panel.images} compact={compact} priority={priority} />
+        <MediaGrid
+          images={panel.images}
+          compact={compact}
+          priority={priority}
+        />
       );
     case "overlap":
       return (
@@ -309,7 +313,11 @@ function StoryMedia({
       );
     case "film":
       return (
-        <MediaFilm images={panel.images} compact={compact} priority={priority} />
+        <MediaFilm
+          images={panel.images}
+          compact={compact}
+          priority={priority}
+        />
       );
     default:
       return null;
@@ -375,7 +383,7 @@ function StoryCardFace({
 
   if (layout === "stacked") {
     return (
-      <div className="flex h-full min-h-0 flex-col">
+      <div className='flex h-full min-h-0 flex-col'>
         {media}
         {text}
       </div>
@@ -383,7 +391,7 @@ function StoryCardFace({
   }
 
   return (
-    <div className="grid h-full min-h-0 grid-cols-2">
+    <div className='grid h-full min-h-0 grid-cols-2'>
       {text}
       {media}
     </div>
@@ -396,7 +404,7 @@ function StorySectionHeader({
   progressRefs?: React.RefObject<Array<HTMLSpanElement | null>>;
 }) {
   return (
-    <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between px-5 pt-8 md:px-8 lg:px-36 lg:pt-16">
+    <header className='pointer-events-none absolute inset-x-0 top-0 z-30 flex items-start justify-between px-5 pt-8 md:px-8 lg:px-36 lg:pt-16'>
       <div>
         <p
           className={`text-[10px] uppercase tracking-[0.32em] lg:text-xs ${STORY_MUTED_CLASS}`}
@@ -410,7 +418,7 @@ function StorySectionHeader({
         </p>
       </div>
 
-      <div className="flex items-center gap-4 text-[10px] uppercase tracking-[0.28em] md:gap-5 md:text-xs">
+      <div className='flex items-center gap-4 text-[10px] uppercase tracking-[0.28em] md:gap-5 md:text-xs'>
         {STORY_PANELS.map((panel, index) => (
           <span
             key={panel.index}
@@ -436,12 +444,14 @@ function StoryReducedMotionLayout({
 }) {
   return (
     <section
-      id="section-3"
+      id='section-3'
       ref={sectionRef}
-      className="overflow-x-hidden bg-primary text-background"
+      className='overflow-x-hidden bg-primary text-background'
     >
-      <div className="px-6 py-14 md:px-16 md:py-20">
-        <p className={`text-xs uppercase tracking-[0.32em] ${STORY_MUTED_CLASS}`}>
+      <div className='px-6 py-14 md:px-16 md:py-20'>
+        <p
+          className={`text-xs uppercase tracking-[0.32em] ${STORY_MUTED_CLASS}`}
+        >
           Câu chuyện của chúng mình
         </p>
         <p className={`mt-3 text-sm ${STORY_BODY_CLASS}`}>
@@ -449,13 +459,13 @@ function StoryReducedMotionLayout({
         </p>
       </div>
 
-      <div className="mx-auto flex max-w-5xl flex-col gap-8 px-6 pb-20 md:px-10">
+      <div className='mx-auto flex max-w-5xl flex-col gap-8 px-6 pb-20 md:px-10'>
         {STORY_PANELS.map((panel) => (
           <article
             key={panel.index}
             className={`overflow-hidden bg-primary ${CARD_BORDER}`}
           >
-            <StoryCardFace panel={panel} layout="spread" />
+            <StoryCardFace panel={panel} layout='spread' />
           </article>
         ))}
       </div>
@@ -491,9 +501,7 @@ function StoryMobileCardsLayout({
         }
         const active = i === index;
         item.style.opacity = active ? "1" : "0.35";
-        item.style.color = active
-          ? "#d4b87a"
-          : "rgba(230, 223, 211, 0.45)";
+        item.style.color = active ? "#d4b87a" : "rgba(230, 223, 211, 0.45)";
       });
     };
 
@@ -502,8 +510,7 @@ function StoryMobileCardsLayout({
         return;
       }
       item.style.opacity = i === 0 ? "1" : "0.35";
-      item.style.color =
-        i === 0 ? "#d4b87a" : "rgba(230, 223, 211, 0.45)";
+      item.style.color = i === 0 ? "#d4b87a" : "rgba(230, 223, 211, 0.45)";
     });
 
     scroller.addEventListener("scroll", syncProgress, { passive: true });
@@ -512,26 +519,26 @@ function StoryMobileCardsLayout({
 
   return (
     <section
-      id="section-3"
+      id='section-3'
       ref={sectionRef}
-      className="relative overflow-hidden bg-primary text-background"
+      className='relative overflow-hidden bg-primary text-background'
     >
-      <div className="relative flex min-h-dvh flex-col pb-[var(--section-nav-height,0px)] pt-16">
+      <div className='relative flex min-h-dvh flex-col pb-[var(--section-nav-height,0px)] pt-16'>
         <StorySectionHeader progressRefs={progressRefs} />
 
         <div
           ref={scrollerRef}
-          className="flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className='flex min-h-0 flex-1 snap-x snap-mandatory overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
         >
           {STORY_PANELS.map((panel) => (
             <article
               key={panel.index}
-              className="box-border flex w-full shrink-0 snap-center snap-always items-center justify-center px-4 py-6"
+              className='box-border flex w-full shrink-0 snap-center snap-always items-center justify-center px-4 py-6'
             >
               <div
                 className={`flex w-full max-w-md flex-col overflow-hidden bg-primary ${CARD_BORDER}`}
               >
-                <StoryCardFace panel={panel} layout="stacked" />
+                <StoryCardFace panel={panel} layout='stacked' />
               </div>
             </article>
           ))}
@@ -713,17 +720,17 @@ function StoryStackedCardsLayout({
 
   return (
     <section
-      id="section-3"
+      id='section-3'
       ref={sectionRef}
-      className="relative overflow-hidden bg-primary text-background"
+      className='relative overflow-hidden bg-primary text-background'
     >
       <div
         ref={pinRef}
-        className="relative flex h-dvh w-full flex-col items-center justify-center pb-[var(--section-nav-height,0px)]"
+        className='relative flex h-dvh w-full flex-col items-center justify-center pb-[var(--section-nav-height,0px)] pt-20 md:pt-24 lg:pt-28'
       >
         <StorySectionHeader progressRefs={progressRefs} />
 
-        <div className="relative h-[min(85dvh,820px)] w-[min(85vw,1100px)]">
+        <div className='relative h-[min(56dvh,calc(100dvh-var(--section-nav-height,0px)-9rem),520px)] w-[min(70vw,1050px)]'>
           {STORY_PANELS.map((panel, index) => (
             <article
               key={panel.index}
@@ -734,7 +741,7 @@ function StoryStackedCardsLayout({
               className={`absolute inset-0 overflow-hidden bg-primary will-change-transform [grid-area:1/1] ${CARD_BORDER}`}
               style={{ zIndex: STORY_PANELS.length - index }}
             >
-              <StoryCardFace panel={panel} layout="spread" />
+              <StoryCardFace panel={panel} layout='spread' />
             </article>
           ))}
         </div>

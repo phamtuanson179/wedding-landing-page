@@ -5,10 +5,13 @@
 export const siteConfig = {
   name: "Sơn & Linh",
   shortName: "S & L",
-  title: "Thiệp cưới Sơn & Linh | 29.11",
+  title: "Thiệp cưới Sơn & Linh | 29.11.2026",
   titleTemplate: "%s | Sơn & Linh",
   description:
-    "Website thiệp cưới của chú rể Phạm Tuấn Sơn và cô dâu Nguyễn Thị Thùy Linh — câu chuyện tình yêu, album ảnh và thông tin lễ cưới tại Gia Lâm, Hà Nội ngày 29.11.",
+    "Trân trọng kính mời bạn đến dự lễ cưới của Phạm Tuấn Sơn & Nguyễn Thị Thùy Linh — ngày 29.11.2026 tại Gia Lâm, Hà Nội. Xem câu chuyện, album ảnh và thông tin buổi lễ.",
+  /** Shorter blurb for chat previews (Messenger / Telegram / LinkedIn). */
+  shareDescription:
+    "Trân trọng kính mời bạn đến dự lễ cưới Sơn & Linh — 29.11.2026 · Gia Lâm, Hà Nội.",
   locale: "vi_VN",
   language: "vi",
   keywords: [
@@ -59,6 +62,14 @@ export const siteConfig = {
   ],
   themeColor: "#800020",
   backgroundColor: "#e6dfd3",
+  /** Canonical social preview image (1200×630). */
+  ogImage: {
+    path: "/og-image.png",
+    width: 1200,
+    height: 630,
+    type: "image/png",
+    alt: "Sơn & Linh — Thiệp cưới 29.11.2026",
+  },
 } as const;
 
 export function getSiteUrl() {

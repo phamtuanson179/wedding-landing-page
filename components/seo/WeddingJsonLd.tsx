@@ -51,7 +51,7 @@ export function WeddingJsonLd() {
           },
         },
         organizer: { "@id": `${url}/#couple` },
-        image: [absoluteUrl("/opengraph-image")],
+        image: [absoluteUrl(siteConfig.ogImage.path)],
       },
       {
         "@type": "Organization",

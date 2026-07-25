@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import { WeddingJsonLd } from "@/components/seo/WeddingJsonLd";
-import { getSiteUrl, siteConfig } from "@/lib/seo/site";
+import { absoluteUrl, getSiteUrl, siteConfig } from "@/lib/seo/site";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,6 +20,14 @@ const playfair = Playfair_Display({
 });
 
 const siteUrl = getSiteUrl();
+const ogImage = {
+  url: siteConfig.ogImage.path,
+  secureUrl: absoluteUrl(siteConfig.ogImage.path),
+  width: siteConfig.ogImage.width,
+  height: siteConfig.ogImage.height,
+  type: siteConfig.ogImage.type,
+  alt: siteConfig.ogImage.alt,
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -62,24 +70,26 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: siteConfig.locale,
+    alternateLocale: ["en_US"],
     url: siteUrl,
     siteName: `${siteConfig.name} Wedding`,
     title: siteConfig.title,
-    description: siteConfig.description,
-    images: [
-      {
-        url: "/opengraph-image",
-        width: 1200,
-        height: 630,
-        alt: `${siteConfig.name} — Thiệp cưới ${siteConfig.wedding.displayDate}`,
-      },
-    ],
+    description: siteConfig.shareDescription,
+    images: [ogImage],
+    countryName: "Vietnam",
   },
   twitter: {
     card: "summary_large_image",
     title: siteConfig.title,
-    description: siteConfig.description,
-    images: ["/opengraph-image"],
+    description: siteConfig.shareDescription,
+    images: [
+      {
+        url: siteConfig.ogImage.path,
+        alt: siteConfig.ogImage.alt,
+        width: siteConfig.ogImage.width,
+        height: siteConfig.ogImage.height,
+      },
+    ],
   },
   robots: {
     index: true,
@@ -95,6 +105,11 @@ export const metadata: Metadata = {
   other: {
     "geo.region": "VN-HN",
     "geo.placename": siteConfig.wedding.locationName,
+    // LinkedIn / Messenger / Telegram read these alongside Open Graph
+    "og:image:width": String(siteConfig.ogImage.width),
+    "og:image:height": String(siteConfig.ogImage.height),
+    "og:image:type": siteConfig.ogImage.type,
+    "og:image:alt": siteConfig.ogImage.alt,
   },
 };
 

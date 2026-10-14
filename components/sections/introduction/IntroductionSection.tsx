@@ -5,6 +5,7 @@ import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { getScroller, isMobileViewport, setCornerNavColor } from "@/lib/scroll/cornerNav";
+import { type WeddingRole } from "@/lib/constants/wedding-data";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -55,45 +56,16 @@ function subscribeLayout(onStoreChange: () => void) {
   };
 }
 
-function PersonStripBlock({
-  person,
-  align = "start",
-}: {
-  person: Person;
-  align?: "start" | "end";
-}) {
-  return (
-    <div
-      data-intro-copy
-      className={`flex flex-col ${
-        align === "end" ? "items-end text-right" : "items-start text-left"
-      }`}
-    >
-      <p className="text-[9px] uppercase tracking-[0.28em] text-foreground/50 md:text-[10px] md:tracking-[0.32em]">
-        {person.role}
-      </p>
-      <h3 className="mt-1.5 font-display text-[clamp(1.05rem,2.4vw,1.85rem)] leading-[1.1] text-foreground">
-        {person.fullName}
-      </h3>
-      <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-primary md:text-xs">
-        ({person.nickname})
-      </p>
-      <p className="mt-3 line-clamp-4 text-[11px] leading-relaxed font-light italic text-foreground/75 md:mt-4 md:line-clamp-5 md:text-[13px]">
-        &ldquo;{person.quote}&rdquo;
-      </p>
-    </div>
-  );
-}
-
 /** Desktop / tablet — cinematic split + ivory shutter spine */
 function IntroDesktop({
   sectionRef,
   reducedMotion = false,
+  role = "his",
 }: {
   sectionRef: React.RefObject<HTMLElement | null>;
   reducedMotion?: boolean;
+  role?: WeddingRole;
 }) {
-  const titleRef = useRef<HTMLHeadingElement>(null);
   const leftMaskRef = useRef<HTMLDivElement>(null);
   const rightMaskRef = useRef<HTMLDivElement>(null);
   const leftImageRef = useRef<HTMLDivElement>(null);
@@ -102,7 +74,6 @@ function IntroDesktop({
 
   useLayoutEffect(() => {
     const section = sectionRef.current;
-    const title = titleRef.current;
     const leftMask = leftMaskRef.current;
     const rightMask = rightMaskRef.current;
     const leftImage = leftImageRef.current;
@@ -111,7 +82,6 @@ function IntroDesktop({
 
     if (
       !section ||
-      !title ||
       !leftMask ||
       !rightMask ||
       !leftImage ||
@@ -140,12 +110,11 @@ function IntroDesktop({
     const tweens: gsap.core.Tween[] = [];
     const timelines: gsap.core.Timeline[] = [];
 
-    gsap.set(title, { y: 18, autoAlpha: 0 });
     gsap.set(leftMask, { clipPath: LEFT_MASK_HIDDEN });
     gsap.set(rightMask, { clipPath: RIGHT_MASK_HIDDEN });
     gsap.set([leftKen, rightKen], { scale: 1 });
     gsap.set(strip, { autoAlpha: 1 });
-    gsap.set(copyBlocks, { y: 30, autoAlpha: 0 });
+    gsap.set(copyBlocks, { y: 22, autoAlpha: 0 });
 
     const entrance = gsap.timeline({
       scrollTrigger: {
@@ -159,27 +128,26 @@ function IntroDesktop({
     timelines.push(entrance);
 
     entrance
-      .to(title, { y: 0, autoAlpha: 1, duration: 0.6, ease: "power3.out" }, 0)
       .to(
         leftMask,
-        { clipPath: MASK_VISIBLE, duration: 1.35, ease: "power3.inOut" },
-        0.15,
+        { clipPath: MASK_VISIBLE, duration: 1.25, ease: "power3.inOut" },
+        0,
       )
       .to(
         rightMask,
-        { clipPath: MASK_VISIBLE, duration: 1.35, ease: "power3.inOut" },
-        0.15,
+        { clipPath: MASK_VISIBLE, duration: 1.25, ease: "power3.inOut" },
+        0,
       )
       .to(
         copyBlocks,
         {
           y: 0,
           autoAlpha: 1,
-          duration: 0.75,
-          stagger: 0.12,
+          duration: 0.65,
+          stagger: 0.1,
           ease: "power2.out",
         },
-        1.15,
+        0.55,
       );
 
     const kenBurns = gsap.timeline({
@@ -248,6 +216,11 @@ function IntroDesktop({
     };
   }, [reducedMotion]);
 
+  const announcementTitle =
+    role === "hers"
+      ? "TRÂN TRỌNG BÁO TIN LỄ VU QUY"
+      : "TRÂN TRỌNG BÁO TIN LỄ THÀNH HÔN";
+
   return (
     <section
       id="section-2"
@@ -308,37 +281,82 @@ function IntroDesktop({
 
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-[1] bg-linear-to-b from-black/50 via-transparent to-background/40"
+        className="pointer-events-none absolute inset-0 z-[1] bg-linear-to-b from-black/25 via-transparent to-background/30"
       />
 
-      <header className="absolute inset-x-0 top-0 z-20 px-5 pt-8 text-center md:px-10 md:pt-12">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-background/80 md:text-xs md:tracking-[0.32em]">
-          Giới thiệu
-        </p>
-        <h2
-          ref={titleRef}
-          className="mt-2 font-display text-[clamp(1.25rem,3.4vw,2.35rem)] leading-tight text-background drop-shadow-[0_1px_18px_rgba(0,0,0,0.45)] md:mt-3"
-        >
-          Hai người, một hành trình
-        </h2>
-      </header>
-
-      {/* Ivory shutter spine — stays put; copy slides in */}
+      {/* Ivory shutter spine — Thẻ màu be 3 tầng sang trọng & thanh thoát */}
       <div
         ref={stripRef}
-        className="absolute top-1/2 left-1/2 z-10 flex h-[min(58dvh,520px)] w-[min(35vw,400px)] 2xl:w-[min(30vw,300px)] -translate-x-1/2 -translate-y-1/2 flex-col justify-between bg-background px-5 py-6 shadow-[0_0_48px_rgba(26,26,26,0.14)] lg:px-6 lg:py-7"
+        className="absolute top-1/2 left-1/2 z-10 w-[min(92vw,510px)] -translate-x-1/2 -translate-y-1/2 bg-background px-5 py-6 sm:px-6.5 sm:py-6 shadow-[0_16px_50px_rgba(0,0,0,0.35)] border border-[#1a1a1a]/10"
       >
-        <PersonStripBlock person={GROOM} align="start" />
+        {/* TẦNG 1: Header thiệp — Font chữ in hoa nhỏ, tracking rộng */}
+        <div data-intro-copy className="text-center">
+          <p className="font-sans text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.22em] sm:tracking-[0.26em] text-primary">
+            {announcementTitle}
+          </p>
+        </div>
 
-        <div className="flex items-center gap-3 py-3 md:py-4" aria-hidden>
+        {/* TẦNG 2: Song thân — 2 Cột cân xứng (grid-cols-2) */}
+        <div data-intro-copy className="mt-3.5 grid grid-cols-2 gap-4 text-center">
+          <div>
+            <p className="text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.15em] text-foreground/60">
+              NHÀ TRAI
+            </p>
+            <div className="mt-1 font-display text-[13px] sm:text-[14px] leading-snug text-foreground/90 font-normal">
+              <p>Ông Phạm Danh Tĩnh</p>
+              <p className="mt-0.5">Bà Đặng Thị Uyên</p>
+            </div>
+          </div>
+          <div>
+            <p className="text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.15em] text-foreground/60">
+              NHÀ GÁI
+            </p>
+            <div className="mt-1 font-display text-[13px] sm:text-[14px] leading-snug text-foreground/90 font-normal">
+              <p>Ông Nguyễn Văn Kiên</p>
+              <p className="mt-0.5">Bà Nguyễn Thị Thu Hà</p>
+            </div>
+          </div>
+        </div>
+
+        {/* DIVIDER: Đường phân cách mảnh với hoa văn tối giản ❦ — Khoảng thở cân đối */}
+        <div
+          data-intro-copy
+          className="my-5 flex items-center justify-center gap-3"
+          aria-hidden
+        >
           <span className="h-px flex-1 bg-foreground/15" />
-          <span className="font-display text-2xl italic text-primary/80 md:text-3xl">
-            &
-          </span>
+          <span className=" text-xl text-primary/75 select-none">❦</span>
           <span className="h-px flex-1 bg-foreground/15" />
         </div>
 
-        <PersonStripBlock person={BRIDE} align="end" />
+        {/* TẦNG 3: Cô dâu & Chú rể — 2 Cột ngang hàng side-by-side */}
+        <div data-intro-copy className="grid grid-cols-2 gap-4 text-center">
+          {/* Chú rể (cột trái - thẳng dưới cột Nhà Trai) */}
+          <div className="flex flex-col items-center">
+            <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.15em] text-foreground/45">
+              CHÚ RỂ
+            </p>
+            <h3 className="mt-1 font-display italic text-[15px] sm:text-[16.5px] font-medium leading-tight text-primary whitespace-nowrap">
+              {GROOM.fullName}
+            </h3>
+            <p className="mt-2.5 text-[10px] sm:text-[11px] leading-relaxed font-light italic text-[#78716c]">
+              &ldquo;{GROOM.quote}&rdquo;
+            </p>
+          </div>
+
+          {/* Cô dâu (cột phải - thẳng dưới cột Nhà Gái) */}
+          <div className="flex flex-col items-center">
+            <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.15em] text-foreground/45">
+              CÔ DÂU
+            </p>
+            <h3 className="mt-1 font-display italic text-[15px] sm:text-[16.5px] font-medium leading-tight text-primary whitespace-nowrap">
+              {BRIDE.fullName}
+            </h3>
+            <p className="mt-2.5 text-[10px] sm:text-[11px] leading-relaxed font-light italic text-[#78716c]">
+              &ldquo;{BRIDE.quote}&rdquo;
+            </p>
+          </div>
+        </div>
       </div>
 
       <div
@@ -351,7 +369,6 @@ function IntroDesktop({
 
 function MobileRowCopy({
   person,
-  align = "start",
 }: {
   person: Person;
   align?: "start" | "end";
@@ -359,20 +376,15 @@ function MobileRowCopy({
   return (
     <div
       data-intro-mobile-copy
-      className={`px-0.5 ${
-        align === "end" ? "text-right" : "text-left"
-      }`}
+      className="px-1 text-center"
     >
-      <p className="text-[9px] uppercase tracking-[0.28em] text-foreground/50">
+      <p className="text-[9px] uppercase tracking-[0.15em] text-foreground/45 font-medium">
         {person.role}
       </p>
-      <h3 className="mt-1.5 font-display text-[clamp(1.15rem,5.2vw,1.45rem)] leading-[1.08] text-foreground">
+      <h3 className="mt-1 font-display italic text-[14px] sm:text-[15px] font-medium leading-snug text-primary">
         {person.fullName}
       </h3>
-      <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-primary">
-        ({person.nickname})
-      </p>
-      <p className="mt-2.5 line-clamp-4 text-[11px] leading-relaxed font-light italic text-foreground/72">
+      <p className="mt-2 line-clamp-4 text-[10px] sm:text-[11px] leading-relaxed font-light italic text-[#78716c]">
         &ldquo;{person.quote}&rdquo;
       </p>
     </div>
@@ -412,11 +424,13 @@ function MobilePortrait({
 function IntroMobile({
   sectionRef,
   reducedMotion = false,
+  role = "his",
 }: {
   sectionRef: React.RefObject<HTMLElement | null>;
   reducedMotion?: boolean;
+  role?: WeddingRole;
 }) {
-  const titleRef = useRef<HTMLHeadingElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
   const photosRef = useRef<HTMLDivElement>(null);
   const copyRef = useRef<HTMLDivElement>(null);
   const ampersandRef = useRef<HTMLSpanElement>(null);
@@ -433,7 +447,7 @@ function IntroMobile({
     }
 
     if (reducedMotion) {
-      gsap.set(ampersand, { autoAlpha: 0.12 });
+      gsap.set(ampersand, { autoAlpha: 0.18 });
       return;
     }
 
@@ -477,7 +491,7 @@ function IntroMobile({
       .to(title, { y: 0, autoAlpha: 1, duration: 0.65, ease: "power3.out" }, 0)
       .to(
         ampersand,
-        { autoAlpha: 0.14, duration: 1.2, ease: "power2.out" },
+        { autoAlpha: 0.18, duration: 1.2, ease: "power2.out" },
         0.15,
       )
       .to(
@@ -517,29 +531,49 @@ function IntroMobile({
     };
   }, [reducedMotion, sectionRef]);
 
+  const announcementTitle =
+    role === "hers"
+      ? "TRÂN TRỌNG BÁO TIN LỄ VU QUY"
+      : "TRÂN TRỌNG BÁO TIN LỄ THÀNH HÔN";
+
   return (
     <section
       id="section-2"
       ref={sectionRef}
-      className="relative flex min-h-dvh flex-col overflow-hidden bg-background text-foreground"
+      className="relative flex min-h-dvh flex-col justify-center overflow-hidden bg-background text-foreground px-5 py-8 pb-[calc(80px+env(safe-area-inset-bottom,20px))]"
     >
-      <header className="shrink-0 px-5 pt-10 pb-5 text-center">
-        <p className="text-[10px] uppercase tracking-[0.28em] text-foreground/60">
-          Giới thiệu
-        </p>
-        <h2
-          ref={titleRef}
-          className="mt-2 font-display text-[clamp(1.35rem,6vw,1.85rem)] leading-tight text-foreground"
-        >
-          Hai người, một hành trình
-        </h2>
-      </header>
+      <div className="relative mx-auto flex w-full max-w-sm flex-col justify-center gap-4">
+        {/* Header: Announcement & Parents */}
+        <header className="text-center">
+          <p className="font-sans text-[9px] font-medium uppercase tracking-[0.22em] text-primary">
+            {announcementTitle}
+          </p>
+          <div ref={titleRef} className="mt-2.5 grid grid-cols-2 gap-3 text-center">
+            <div>
+              <p className="text-[9px] font-medium uppercase tracking-[0.15em] text-foreground/60">
+                NHÀ TRAI
+              </p>
+              <div className="mt-0.5 font-display text-[12px] leading-snug text-foreground/90 font-normal">
+                <p>Ông Phạm Danh Tĩnh</p>
+                <p className="mt-0.5">Bà Đặng Thị Uyên</p>
+              </div>
+            </div>
+            <div>
+              <p className="text-[9px] font-medium uppercase tracking-[0.15em] text-foreground/60">
+                NHÀ GÁI
+              </p>
+              <div className="mt-0.5 font-display text-[12px] leading-snug text-foreground/90 font-normal">
+                <p>Ông Nguyễn Văn Kiên</p>
+                <p className="mt-0.5">Bà Nguyễn Thị Thu Hà</p>
+              </div>
+            </div>
+          </div>
+        </header>
 
-      <div className="relative mx-auto flex w-full max-w-lg flex-1 flex-col justify-center gap-4 px-4 pb-[calc(1.25rem+var(--section-nav-height,0px))]">
         <span
           ref={ampersandRef}
           aria-hidden
-          className="pointer-events-none absolute left-1/2 top-[52%] z-0 -translate-x-1/2 -translate-y-1/2 select-none font-display text-[clamp(9rem,48vw,16rem)] italic leading-none text-primary opacity-0"
+          className="pointer-events-none absolute left-1/2 top-[70%] z-0 -translate-x-1/2 -translate-y-1/2 select-none font-display text-[clamp(14rem,68vw,22rem)] italic leading-none text-primary opacity-0"
         >
           &
         </span>
@@ -552,8 +586,8 @@ function IntroMobile({
 
         {/* Row 2 — copy under each portrait */}
         <div ref={copyRef} className="relative z-10 grid grid-cols-2 gap-3">
-          <MobileRowCopy person={GROOM} align="start" />
-          <MobileRowCopy person={BRIDE} align="end" />
+          <MobileRowCopy person={GROOM} />
+          <MobileRowCopy person={BRIDE} />
         </div>
       </div>
     </section>
@@ -569,7 +603,7 @@ function getLayoutMode(): "desktop" | "mobile" | "reduced-desktop" | "reduced-mo
   return mobile ? "mobile" : "desktop";
 }
 
-export function IntroductionSection() {
+export function IntroductionSection({ role = "his" }: { role?: WeddingRole }) {
   const sectionRef = useRef<HTMLElement>(null);
   const layoutMode = useSyncExternalStore(
     subscribeLayout,
@@ -603,16 +637,16 @@ export function IntroductionSection() {
   }, [layoutMode]);
 
   if (layoutMode === "mobile") {
-    return <IntroMobile sectionRef={sectionRef} />;
+    return <IntroMobile sectionRef={sectionRef} role={role} />;
   }
 
   if (layoutMode === "reduced-mobile") {
-    return <IntroMobile sectionRef={sectionRef} reducedMotion />;
+    return <IntroMobile sectionRef={sectionRef} reducedMotion role={role} />;
   }
 
   if (layoutMode === "reduced-desktop") {
-    return <IntroDesktop sectionRef={sectionRef} reducedMotion />;
+    return <IntroDesktop sectionRef={sectionRef} reducedMotion role={role} />;
   }
 
-  return <IntroDesktop sectionRef={sectionRef} />;
+  return <IntroDesktop sectionRef={sectionRef} role={role} />;
 }

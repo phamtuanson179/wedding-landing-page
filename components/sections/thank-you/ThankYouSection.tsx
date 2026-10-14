@@ -1,176 +1,25 @@
 "use client";
 
-import {
-  useCallback,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type RefObject,
-} from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { getScroller, isMobileViewport, setFinaleChrome } from "@/lib/scroll/cornerNav";
+import { getScroller, setFinaleChrome } from "@/lib/scroll/cornerNav";
+import {
+  getWeddingData,
+  type BankInfo,
+  type WeddingRole,
+} from "@/lib/constants/wedding-data";
 
 gsap.registerPlugin(ScrollTrigger);
 
-type PersonKey = "groom" | "bride";
-
-type BankAccount = {
-  key: PersonKey;
-  buttonLabel: string;
-  holder: string;
-  bank: string;
-  accountNo: string;
-  bankId: string;
-};
-
-const ACCOUNTS: BankAccount[] = [
-  {
-    key: "groom",
-    buttonLabel: "Mừng cưới Sơn",
-    holder: "PHAM TUAN SON",
-    bank: "Vietcombank",
-    bankId: "970436",
-    accountNo: "0123456789",
-  },
-  {
-    key: "bride",
-    buttonLabel: "Mừng cưới Linh",
-    holder: "NGUYEN THI THUY LINH",
-    bank: "Techcombank",
-    bankId: "970407",
-    accountNo: "0987654321",
-  },
-];
-
 const CONTENT_INSET = "px-6 md:px-14 lg:px-20 xl:px-24";
 
-function getVietQrUrl(account: BankAccount) {
+function getVietQrUrl(account: BankInfo) {
   const accountName = encodeURIComponent(account.holder);
   return `https://img.vietqr.io/image/${account.bankId}-${account.accountNo}-compact2.jpg?accountName=${accountName}`;
 }
 
-function getAccountByKey(key: PersonKey) {
-  return ACCOUNTS.find((account) => account.key === key)!;
-}
-
-function remeasurePanelHeight(panel: HTMLElement) {
-  gsap.set(panel, { height: "auto" });
-  const targetHeight = panel.scrollHeight;
-  gsap.set(panel, { height: targetHeight });
-  return targetHeight;
-}
-
-function animatePanelHeight(
-  panel: HTMLElement,
-  open: boolean,
-  onComplete?: () => void,
-) {
-  if (open) {
-    gsap.set(panel, { height: "auto" });
-    const targetHeight = panel.scrollHeight;
-    gsap.set(panel, { height: 0 });
-
-    return gsap.to(panel, {
-      height: targetHeight,
-      duration: 0.5,
-      ease: "power2.out",
-      onComplete: () => {
-        gsap.set(panel, { height: "auto" });
-        onComplete?.();
-      },
-    });
-  }
-
-  const currentHeight = panel.offsetHeight;
-  gsap.set(panel, { height: currentHeight });
-
-  return gsap.to(panel, {
-    height: 0,
-    duration: 0.4,
-    ease: "power2.inOut",
-    onComplete,
-  });
-}
-
-function MagneticButton({
-  label,
-  active,
-  onClick,
-  buttonRef,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  buttonRef?: RefObject<HTMLButtonElement | null>;
-}) {
-  const localRef = useRef<HTMLButtonElement>(null);
-  const ref = buttonRef ?? localRef;
-
-  useLayoutEffect(() => {
-    const button = ref.current;
-    if (!button) {
-      return;
-    }
-
-    const prefersReducedMotion = window.matchMedia(
-      "(prefers-reduced-motion: reduce)",
-    ).matches;
-
-    if (prefersReducedMotion) {
-      return;
-    }
-
-    const handleMove = (event: MouseEvent) => {
-      const rect = button.getBoundingClientRect();
-      const offsetX = event.clientX - rect.left - rect.width / 2;
-      const offsetY = event.clientY - rect.top - rect.height / 2;
-
-      gsap.to(button, {
-        x: offsetX * 0.18,
-        y: offsetY * 0.18,
-        duration: 0.35,
-        ease: "power2.out",
-        overwrite: true,
-      });
-    };
-
-    const handleLeave = () => {
-      gsap.to(button, {
-        x: 0,
-        y: 0,
-        duration: 0.55,
-        ease: "power2.out",
-        overwrite: true,
-      });
-    };
-
-    button.addEventListener("mousemove", handleMove);
-    button.addEventListener("mouseleave", handleLeave);
-
-    return () => {
-      button.removeEventListener("mousemove", handleMove);
-      button.removeEventListener("mouseleave", handleLeave);
-    };
-  }, [ref]);
-
-  return (
-    <button
-      ref={ref}
-      type='button'
-      onClick={onClick}
-      className={`w-full cursor-pointer border px-3 py-2.5 text-[10px] uppercase tracking-[0.18em] transition-[color,border-color,background-color] duration-300 sm:px-4 sm:py-3 sm:text-[11px] md:w-auto md:px-6 md:py-3.5 md:text-xs md:tracking-[0.2em] ${
-        active
-          ? "border-[#d4b87a] bg-background/14 text-background"
-          : "border-background/50 text-background/88 hover:border-background hover:bg-background/8 hover:text-background"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
-function QrPanel({ account }: { account: BankAccount }) {
+function QrPanel({ account }: { account: BankInfo }) {
   const [copied, setCopied] = useState(false);
 
   const copyAccountNo = async () => {
@@ -191,8 +40,8 @@ function QrPanel({ account }: { account: BankAccount }) {
           <img
             src={getVietQrUrl(account)}
             alt={`Mã QR mừng cưới ${account.holder}`}
-            className='aspect-square w-full rounded-lg object-contain'
-            loading='lazy'
+            className="aspect-square w-full rounded-lg object-contain"
+            loading="lazy"
           />
         </div>
       </div>
@@ -243,18 +92,15 @@ function QrPanel({ account }: { account: BankAccount }) {
   );
 }
 
-export function ThankYouSection() {
+export function ThankYouSection({ role = "his" }: { role?: WeddingRole }) {
+  const weddingData = getWeddingData(role);
   const sectionRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const messageRef = useRef<HTMLParagraphElement>(null);
-  const buttonsRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const panelTweenRef = useRef<gsap.core.Tween | null>(null);
-  const contentTweenRef = useRef<gsap.core.Timeline | null>(null);
 
-  const [activeKey, setActiveKey] = useState<PersonKey | null>(null);
+  const account = weddingData.bank;
 
   useLayoutEffect(() => {
     const section = sectionRef.current;
@@ -284,9 +130,9 @@ export function ThankYouSection() {
     const section = sectionRef.current;
     const title = titleRef.current;
     const message = messageRef.current;
-    const buttons = buttonsRef.current;
+    const panel = panelRef.current;
 
-    if (!section || !title || !message || !buttons) {
+    if (!section || !title || !message || !panel) {
       return;
     }
 
@@ -300,7 +146,7 @@ export function ThankYouSection() {
 
     const scroller = getScroller();
 
-    gsap.set([title, message, buttons], { y: 40, autoAlpha: 0 });
+    gsap.set([title, message, panel], { y: 40, autoAlpha: 0 });
 
     const timeline = gsap.timeline({
       scrollTrigger: {
@@ -321,7 +167,7 @@ export function ThankYouSection() {
         stagger: 0.12,
       })
       .to(
-        buttons,
+        panel,
         {
           y: 0,
           autoAlpha: 1,
@@ -340,123 +186,6 @@ export function ThankYouSection() {
       timeline.kill();
     };
   }, []);
-
-  const animateContentIn = useCallback(() => {
-    const content = contentRef.current;
-    if (!content) {
-      return;
-    }
-
-    contentTweenRef.current?.kill();
-    contentTweenRef.current = gsap.timeline().fromTo(
-      content,
-      { autoAlpha: 0, scale: 0.9 },
-      {
-        autoAlpha: 1,
-        scale: 1,
-        duration: 0.5,
-        ease: "power2.out",
-      },
-    );
-  }, []);
-
-  const animateContentSwap = useCallback((nextKey: PersonKey) => {
-    const panel = panelRef.current;
-    const content = contentRef.current;
-    if (!content || !panel) {
-      setActiveKey(nextKey);
-      return;
-    }
-
-    contentTweenRef.current?.kill();
-    panelTweenRef.current?.kill();
-
-    contentTweenRef.current = gsap.timeline().to(content, {
-      autoAlpha: 0,
-      scale: 0.95,
-      duration: 0.2,
-      ease: "power2.in",
-      onComplete: () => {
-        setActiveKey(nextKey);
-        requestAnimationFrame(() => {
-          const nextHeight = remeasurePanelHeight(panel);
-          panelTweenRef.current = gsap.to(panel, {
-            height: nextHeight,
-            duration: 0.35,
-            ease: "power2.out",
-            onComplete: () => gsap.set(panel, { height: "auto" }),
-          });
-
-          gsap.fromTo(
-            content,
-            { autoAlpha: 0, scale: 0.9 },
-            {
-              autoAlpha: 1,
-              scale: 1,
-              duration: 0.45,
-              ease: "power2.out",
-            },
-          );
-        });
-      },
-    });
-  }, []);
-
-  const handleSelect = (key: PersonKey) => {
-    const panel = panelRef.current;
-    if (!panel) {
-      return;
-    }
-
-    panelTweenRef.current?.kill();
-    contentTweenRef.current?.kill();
-
-    const isMobile = isMobileViewport();
-
-    if (activeKey === key) {
-      const content = contentRef.current;
-
-      if (content) {
-        gsap.to(content, {
-          autoAlpha: 0,
-          scale: 0.95,
-          duration: 0.2,
-          ease: "power2.in",
-          onComplete: () => {
-            panelTweenRef.current = animatePanelHeight(panel, false, () => {
-              setActiveKey(null);
-              ScrollTrigger.refresh();
-            });
-          },
-        });
-      } else {
-        panelTweenRef.current = animatePanelHeight(panel, false, () => {
-          setActiveKey(null);
-          ScrollTrigger.refresh();
-        });
-      }
-      return;
-    }
-
-    if (activeKey === null) {
-      setActiveKey(key);
-      requestAnimationFrame(() => {
-        panelTweenRef.current = animatePanelHeight(panel, true, () => {
-          animateContentIn();
-          ScrollTrigger.refresh();
-        });
-
-        if (!isMobile) {
-          panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-        }
-      });
-      return;
-    }
-
-    animateContentSwap(key);
-  };
-
-  const activeAccount = activeKey ? getAccountByKey(activeKey) : null;
 
   return (
     <section
@@ -486,7 +215,7 @@ export function ThankYouSection() {
             </h2>
             <p
               ref={messageRef}
-              className="mt-3 text-xs leading-relaxed text-background/78 md:mt-5 md:text-base md:leading-7 font-light"
+              className="mt-3 text-xs leading-relaxed font-light text-background/78 md:mt-5 md:text-base md:leading-7"
             >
               Việc có mặt của mọi người chính là niềm vui lớn nhất của cô dâu
               chú rể. Chúng mình rất mong được đón bạn đến chung vui và gửi
@@ -494,35 +223,8 @@ export function ThankYouSection() {
             </p>
           </header>
 
-          <div className="mt-6 w-full md:mt-14">
-            <div
-              ref={buttonsRef}
-              className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:items-center sm:justify-center sm:gap-4"
-            >
-              {ACCOUNTS.map((account) => (
-                <MagneticButton
-                  key={account.key}
-                  label={account.buttonLabel}
-                  active={activeKey === account.key}
-                  onClick={() => handleSelect(account.key)}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div
-            ref={panelRef}
-            data-qr-content-wrapper
-            className={`qr-content-wrapper w-full overflow-hidden ${
-              activeKey ? "mt-4 md:mt-0" : ""
-            }`}
-            style={{ height: 0 }}
-          >
-            <div ref={contentRef} className="qr-content-panel w-full">
-              {activeAccount ? (
-                <QrPanel key={activeAccount.key} account={activeAccount} />
-              ) : null}
-            </div>
+          <div ref={panelRef} className="mt-4 w-full md:mt-8">
+            <QrPanel account={account} />
           </div>
         </div>
       </div>

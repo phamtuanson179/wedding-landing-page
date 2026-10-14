@@ -1,0 +1,1 @@
+export { WeddingLandingPage } from "./WeddingLandingPage";

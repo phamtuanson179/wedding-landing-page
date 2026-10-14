@@ -5,33 +5,16 @@ import { createPortal } from "react-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { getScroller, setCornerNavColor } from "@/lib/scroll/cornerNav";
+import {
+  getWeddingData,
+  TIMELINE_ROWS,
+  type TimelineRow,
+  type WeddingRole,
+} from "@/lib/constants/wedding-data";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const WEDDING = {
-  date: "2026.11.29 Sun",
-  ceremony: {
-    label: "Wedding Ceremony",
-    sublabel: "Lễ cưới",
-    time: "11:00",
-    note: "Đón khách từ 10:30",
-  },
-  reception: {
-    label: "Reception",
-    sublabel: "Tiệc cưới",
-    time: "11:30",
-    note: "Khai tiệc & chụp ảnh lưu niệm",
-  },
-  venue: {
-    name: "Trung tâm Tiệc cưới Gia Lâm",
-    address: "Gia Lâm, Hà Nội",
-    mapsQuery: "Gia Lâm, Hà Nội, Vietnam",
-    mapsUrl:
-      "https://www.google.com/maps/search/?api=1&query=Gia+L%C3%A2m%2C+H%C3%A0+N%E1%BB%99i",
-  },
-} as const;
-
-const CONTENT_INSET = "px-4 md:px-24 lg:px-32 xl:px-36";
+const CONTENT_INSET = "px-6 md:px-20 lg:px-28 xl:px-36";
 
 function MapsModal({
   open,
@@ -150,19 +133,22 @@ function MapsModal({
         ref={backdropRef}
         type="button"
         aria-label="Đóng bản đồ"
-        className="absolute inset-0 bg-black/72"
         onClick={handleClose}
+        className="absolute inset-0 bg-black/75 backdrop-blur-sm cursor-pointer"
       />
 
       <div
         ref={panelRef}
-        className="relative z-10 flex h-[min(82vh,720px)] w-full max-w-4xl flex-col overflow-hidden border border-background/20 bg-[#111] shadow-2xl"
+        className="relative z-10 flex h-full max-h-[82vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-background/25 bg-[#141414] shadow-2xl"
       >
-        <div className="flex items-center justify-between gap-3 border-b border-background/10 px-3 py-3 md:px-5 md:py-4">
-          <p className="shrink-0 whitespace-nowrap text-[10px] uppercase tracking-[0.18em] text-background/70 md:text-sm md:tracking-[0.24em]">
-            Bản đồ
-          </p>
-          <div className="flex shrink-0 items-center gap-1.5 md:gap-2">
+        <div className="flex items-center justify-between border-b border-background/15 px-4 py-3 md:px-6 md:py-4">
+          <div className="min-w-0 pr-4">
+            <p className="truncate font-display text-sm text-background md:text-base">
+              Địa điểm cưới
+            </p>
+            <p className="truncate text-xs text-background/60">{mapsQuery}</p>
+          </div>
+          <div className="flex items-center gap-2">
             <a
               href={mapsUrl}
               target="_blank"
@@ -196,22 +182,16 @@ function MapsModal({
 }
 
 function ScheduleRow({
-  label,
-  sublabel,
-  time,
-  note,
+  row,
   dataAttr,
   hoverable = true,
-  variant = "time",
+  isActive = false,
   valueRef,
 }: {
-  label: string;
-  sublabel: string;
-  time: string;
-  note?: string;
+  row: TimelineRow;
   dataAttr: string;
   hoverable?: boolean;
-  variant?: "time" | "date";
+  isActive?: boolean;
   valueRef?: RefObject<HTMLParagraphElement | null>;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
@@ -258,53 +238,66 @@ function ScheduleRow({
     });
   };
 
-  const valueClassName =
-    variant === "date"
-      ? "font-display text-[clamp(1.45rem,4.2vw,3.5rem)] leading-none text-background"
-      : "font-display text-[clamp(2rem,6.2vw,4.5rem)] leading-none text-background will-change-transform";
-
   return (
     <div
       ref={rowRef}
       data-wedding-row={dataAttr}
-      className={`grid grid-cols-2 items-end gap-3 border-b border-background/10 py-4 md:gap-4 md:py-5 lg:py-8 ${
-        hoverable ? "cursor-default" : "pointer-events-none"
-      }`}
+      className={`grid grid-cols-[1fr_auto] items-end gap-3 border-b border-background/10 py-3.5 transition-opacity duration-300 sm:py-5 md:gap-6 md:py-6 lg:py-8 ${
+        isActive ? "opacity-100" : "opacity-50 hover:opacity-85"
+      } ${hoverable ? "cursor-default" : "pointer-events-none"}`}
       onMouseEnter={hoverable ? handleEnter : undefined}
       onMouseLeave={hoverable ? handleLeave : undefined}
       onFocus={hoverable ? handleEnter : undefined}
       onBlur={hoverable ? handleLeave : undefined}
     >
-      <div>
-        <p className="font-display text-lg italic text-background/92 md:text-xl lg:text-3xl">
-          {label}
-        </p>
-        <p className="mt-0.5 text-[10px] uppercase tracking-[0.22em] text-background/45 md:mt-1 md:text-xs">
-          {sublabel}
-        </p>
+      {/* Cột trái: Tên lễ + Ngày tháng + Địa điểm */}
+      <div className="min-w-0 pr-2">
+        {/* Bản Desktop (md trở lên): Tên lễ và Ngày chung 1 dòng lớn */}
+        <div className="hidden md:block">
+          <p className="truncate font-display text-xl italic text-background/92 lg:text-3xl">
+            {row.title} <span className="mx-1 text-background/40">·</span> {row.dateStr}
+          </p>
+          <p className="mt-1.5 text-[10px] uppercase tracking-[0.22em] text-background/45 md:text-xs">
+            {row.subtitle}
+          </p>
+        </div>
+
+        {/* Bản Mobile: Tách 3 tầng gọn gàng, không bị tràn hay chen lấn */}
+        <div className="block md:hidden">
+          <p className="font-display text-base italic leading-tight text-background/95 sm:text-lg">
+            {row.title}
+          </p>
+          <p className="mt-0.5 text-xs font-normal text-[#d4b87a]">
+            {row.dateStr}
+          </p>
+          <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-background/50">
+            {row.subtitle}
+          </p>
+        </div>
       </div>
 
-      <div className="text-right">
+      {/* Cột phải: Số giờ to và subtext */}
+      <div className="shrink-0 text-right">
         <p
           ref={valueRef}
           data-wedding-time
-          className={valueClassName}
+          className="font-display text-[clamp(1.75rem,5.5vw,4.5rem)] leading-none text-background will-change-transform"
         >
-          {time}
+          {row.timeStr}
         </p>
-        {note ? (
-          <p className="mt-1.5 text-[10px] text-background/45 md:mt-2 md:text-xs">{note}</p>
-        ) : null}
+        <p className="mt-1 text-[10px] text-background/45 md:mt-2 md:text-xs">
+          {row.timeNote}
+        </p>
       </div>
     </div>
   );
 }
 
-export function WeddingSection() {
+export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
+  const weddingData = getWeddingData(role);
   const sectionRef = useRef<HTMLElement>(null);
-  const dateValueRef = useRef<HTMLParagraphElement>(null);
-  const ceremonyRef = useRef<HTMLDivElement>(null);
-  const receptionRef = useRef<HTMLDivElement>(null);
+  const row1Ref = useRef<HTMLDivElement>(null);
+  const row2Ref = useRef<HTMLDivElement>(null);
   const venueRef = useRef<HTMLDivElement>(null);
   const [mapsOpen, setMapsOpen] = useState(false);
 
@@ -333,18 +326,11 @@ export function WeddingSection() {
 
   useLayoutEffect(() => {
     const section = sectionRef.current;
-    const dateValue = dateValueRef.current;
-    const ceremony = ceremonyRef.current;
-    const reception = receptionRef.current;
+    const row1 = row1Ref.current;
+    const row2 = row2Ref.current;
     const venue = venueRef.current;
 
-    if (
-      !section ||
-      !dateValue ||
-      !ceremony ||
-      !reception ||
-      !venue
-    ) {
+    if (!section || !row1 || !row2 || !venue) {
       return;
     }
 
@@ -358,8 +344,7 @@ export function WeddingSection() {
 
     const scroller = getScroller();
 
-    gsap.set(dateValue, { x: 50, autoAlpha: 0, letterSpacing: "0.18em" });
-    gsap.set([ceremony, reception, venue], { y: 28, autoAlpha: 0 });
+    gsap.set([row1, row2, venue], { y: 28, autoAlpha: 0 });
 
     const timeline = gsap.timeline({
       scrollTrigger: {
@@ -372,22 +357,11 @@ export function WeddingSection() {
     });
 
     timeline
-      .to(dateValue, {
-        x: 0,
-        autoAlpha: 1,
-        letterSpacing: "0.02em",
-        duration: 0.9,
-        ease: "power3.out",
-      })
+      .to(row1, { y: 0, autoAlpha: 1, duration: 0.75, ease: "power3.out" })
       .to(
-        ceremony,
+        row2,
         { y: 0, autoAlpha: 1, duration: 0.75, ease: "power3.out" },
-        "-=0.35",
-      )
-      .to(
-        reception,
-        { y: 0, autoAlpha: 1, duration: 0.75, ease: "power3.out" },
-        "-=0.45",
+        "-=0.4",
       )
       .to(
         venue,
@@ -410,82 +384,72 @@ export function WeddingSection() {
       <section
         id="section-5"
         ref={sectionRef}
-        className="relative flex h-dvh min-h-dvh flex-col overflow-hidden bg-[#0a0a0a] text-background"
+        className="relative flex h-dvh min-h-dvh flex-col justify-center overflow-hidden bg-[#0a0a0a] text-background"
       >
         <div
-          className={`mx-auto flex h-full w-full max-w-7xl flex-col justify-between pt-4 pb-[calc(1.25rem+var(--section-nav-height,0px))] md:pt-6 md:pb-[calc(1.75rem+var(--section-nav-height,0px))] lg:pt-8 lg:pb-[calc(2.5rem+var(--section-nav-height,0px))] ${CONTENT_INSET}`}
+          className={`mx-auto flex h-full w-full max-w-7xl flex-col justify-center pb-[var(--section-nav-height,0px)] ${CONTENT_INSET}`}
         >
-          <div className="flex min-h-0 flex-1 flex-col justify-center">
-            <ScheduleRow
-              hoverable={false}
-              variant="date"
-              dataAttr="day"
-              label="Day"
-              sublabel="Ngày cưới"
-              time={WEDDING.date}
-              valueRef={dateValueRef}
-            />
-
-            <div ref={ceremonyRef}>
+          {/* Cụm nội dung gắn kết 3 khối: Lễ 1 + Lễ 2 + Địa điểm đặt tại trung tâm */}
+          <div className="flex flex-col justify-center">
+            {/* Dòng 1: Lễ Vu Quy (Nhà Gái) */}
+            <div ref={row1Ref}>
               <ScheduleRow
                 hoverable
-                dataAttr="ceremony"
-                label={WEDDING.ceremony.label}
-                sublabel={WEDDING.ceremony.sublabel}
-                time={WEDDING.ceremony.time}
-                note={WEDDING.ceremony.note}
+                isActive={role === "hers"}
+                dataAttr="vu-quy"
+                row={TIMELINE_ROWS[0]}
               />
             </div>
 
-            <div ref={receptionRef}>
+            {/* Dòng 2: Lễ Thành Hôn (Nhà Trai) */}
+            <div ref={row2Ref}>
               <ScheduleRow
                 hoverable
-                dataAttr="reception"
-                label={WEDDING.reception.label}
-                sublabel={WEDDING.reception.sublabel}
-                time={WEDDING.reception.time}
-                note={WEDDING.reception.note}
+                isActive={role === "his"}
+                dataAttr="thanh-hon"
+                row={TIMELINE_ROWS[1]}
               />
             </div>
-          </div>
 
-          <div
-            ref={venueRef}
-            className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,100px)] items-end gap-4 pt-4 md:gap-6 md:pt-5 lg:pt-8"
-          >
-            <div className="">
-              <h3 className="font-display text-[clamp(1.25rem,3.2vw,2.5rem)] leading-tight text-background">
-                {WEDDING.venue.name}
-              </h3>
-              <p className="mt-1.5 text-sm text-background/58 md:mt-2 md:text-base">
-                {WEDDING.venue.address}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-3 md:mt-5">
-                <button
-                  type="button"
-                  onClick={() => setMapsOpen(true)}
-                  className="cursor-pointer border border-background/45 px-4 py-2 text-xs uppercase tracking-[0.22em] text-background/88 transition-[color,border-color,background-color] duration-300 hover:border-background hover:bg-background/8 hover:text-background"
-                >
-                  Xem bản đồ
-                </button>
-                <a
-                  href={WEDDING.venue.mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center border border-transparent px-2 py-2 text-xs uppercase tracking-[0.18em] text-background/50 transition-colors hover:text-background/80"
-                >
-                  Google Maps
-                </a>
+            {/* Dòng 3: Khối Địa điểm & Bản đồ (liền mạch ngay dưới Lễ 2) */}
+            <div
+              ref={venueRef}
+              className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,100px)] items-end gap-4 pt-6 sm:pt-7 md:gap-6 md:pt-8 lg:pt-9"
+            >
+              <div>
+                <h3 className="font-display text-[clamp(1.15rem,3vw,2.5rem)] leading-tight text-background">
+                  {weddingData.venue.name}
+                </h3>
+                <p className="mt-1 text-xs text-background/58 sm:text-sm md:mt-1.5 md:text-base">
+                  {weddingData.venue.address}
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-2.5 md:mt-4 md:gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setMapsOpen(true)}
+                    className="cursor-pointer border border-background/45 px-3.5 py-1.5 text-[10px] uppercase tracking-[0.2em] text-background/88 transition-[color,border-color,background-color] duration-300 hover:border-background hover:bg-background/8 hover:text-background md:px-4 md:py-2 md:text-xs md:tracking-[0.22em]"
+                  >
+                    Xem bản đồ
+                  </button>
+                  <a
+                    href={weddingData.venue.mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center border border-transparent px-2 py-1.5 text-[10px] uppercase tracking-[0.16em] text-background/50 transition-colors hover:text-background/80 md:px-2 md:py-2 md:text-xs md:tracking-[0.18em]"
+                  >
+                    Google Maps
+                  </a>
+                </div>
               </div>
-            </div>
 
-            <div className="text-right">
-              <p className="font-display text-lg italic text-background/92 md:text-xl lg:text-3xl">
-                Place
-              </p>
-              <p className="mt-1 text-[10px] uppercase tracking-[0.22em] text-background/45 md:text-xs">
-                Địa điểm
-              </p>
+              <div className="text-right">
+                <p className="font-display text-base italic text-background/92 sm:text-lg md:text-xl lg:text-3xl">
+                  Place
+                </p>
+                <p className="mt-0.5 text-[9px] uppercase tracking-[0.2em] text-background/45 md:mt-1 md:text-xs md:tracking-[0.22em]">
+                  Địa điểm
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -494,8 +458,8 @@ export function WeddingSection() {
       <MapsModal
         open={mapsOpen}
         onClose={() => setMapsOpen(false)}
-        mapsQuery={WEDDING.venue.mapsQuery}
-        mapsUrl={WEDDING.venue.mapsUrl}
+        mapsQuery={weddingData.venue.mapsQuery}
+        mapsUrl={weddingData.venue.mapsUrl}
       />
     </>
   );

@@ -148,7 +148,7 @@ export function BackgroundMusic() {
         aria-label={showMuted ? "Bật nhạc nền" : "Tắt tiếng nhạc nền"}
         aria-pressed={showMuted}
         title={showMuted ? "Bật nhạc" : "Tắt tiếng"}
-        className="fixed right-3 top-[20%] z-[60] flex h-9 w-9 items-center justify-center border border-background/35 bg-primary/80 text-background backdrop-blur-sm transition-[opacity,background-color] duration-300 hover:bg-primary md:right-5"
+        className="fixed right-4 top-[max(16px,env(safe-area-inset-top))] z-[70] flex h-9 w-9 items-center justify-center border border-background/35 bg-primary/80 text-background backdrop-blur-sm transition-[opacity,background-color] duration-300 hover:bg-primary md:right-5 md:top-5"
       >
         <SpeakerIcon muted={showMuted} />
       </button>

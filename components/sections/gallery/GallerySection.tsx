@@ -23,6 +23,7 @@ export function GallerySection({
   const thumbTrackRef = useRef<HTMLDivElement>(null);
   const thumbRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const touchStartXRef = useRef<number | null>(null);
+  const isFirstRender = useRef(true);
 
   const totalPhotos = photos.length;
   const currentPhoto = photos[activeIndex] ?? photos[0];
@@ -43,14 +44,25 @@ export function GallerySection({
     goToPhoto(activeIndex + 1);
   }, [activeIndex, goToPhoto]);
 
-  // Sync active thumbnail scroll position into center of view
+  // Sync active thumbnail scroll position into center of container ONLY
+  // (Using track.scrollTo instead of element.scrollIntoView to avoid scrolling the whole page on mount)
   useEffect(() => {
-    const activeThumb = thumbRefs.current[activeIndex];
-    if (activeThumb && thumbTrackRef.current) {
-      activeThumb.scrollIntoView({
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const track = thumbTrackRef.current;
+    const thumb = thumbRefs.current[activeIndex];
+    if (track && thumb) {
+      const thumbLeft = thumb.offsetLeft;
+      const thumbWidth = thumb.offsetWidth;
+      const trackWidth = track.clientWidth;
+      const targetLeft = thumbLeft - trackWidth / 2 + thumbWidth / 2;
+
+      track.scrollTo({
+        left: Math.max(0, targetLeft),
         behavior: "smooth",
-        inline: "center",
-        block: "nearest",
       });
     }
   }, [activeIndex]);

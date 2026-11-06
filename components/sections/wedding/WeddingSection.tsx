@@ -252,7 +252,6 @@ function ScheduleRow({
     >
       {/* Cột trái: Tên lễ + Ngày tháng + Địa điểm */}
       <div className="min-w-0 pr-2">
-        {/* Bản Desktop (md trở lên): Tên lễ và Ngày chung 1 dòng lớn */}
         <div className="hidden md:block">
           <p className="truncate font-display text-xl italic text-background/92 lg:text-3xl">
             {row.title} <span className="mx-1 text-background/40">·</span> {row.dateStr}
@@ -262,7 +261,6 @@ function ScheduleRow({
           </p>
         </div>
 
-        {/* Bản Mobile: Tách 3 tầng gọn gàng, không bị tràn hay chen lấn */}
         <div className="block md:hidden">
           <p className="font-display text-base italic leading-tight text-background/95 sm:text-lg">
             {row.title}
@@ -299,6 +297,7 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
   const row1Ref = useRef<HTMLDivElement>(null);
   const row2Ref = useRef<HTMLDivElement>(null);
   const venueRef = useRef<HTMLDivElement>(null);
+
   const [mapsOpen, setMapsOpen] = useState(false);
 
   useLayoutEffect(() => {
@@ -386,8 +385,93 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
         ref={sectionRef}
         className="relative flex h-dvh min-h-dvh flex-col justify-center overflow-hidden bg-[#0a0a0a] text-background"
       >
+        {/* ========================================================= */}
+        {/* MOBILE VIEWPORT (< md): Editorial Stacking Layout         */}
+        {/* ========================================================= */}
+        <div className="flex md:hidden flex-col justify-between h-full min-h-dvh w-full max-w-lg mx-auto px-6 sm:px-8 pt-12 pb-[calc(var(--section-nav-height,0px)+1.5rem)] text-background text-left">
+          {/* Header */}
+          <div className="shrink-0">
+            <span className="text-[10px] tracking-[0.25em] uppercase text-background/50 font-sans block mb-1">
+              04 / EVENT TIMELINE
+            </span>
+            <h2 className="font-display italic text-2xl sm:text-3xl text-background tracking-wide">
+              Chương Trình Hôn Lễ
+            </h2>
+          </div>
+
+          {/* Block 1: Lễ Vu Quy */}
+          <div className={`transition-opacity duration-300 ${role === "hers" ? "opacity-100" : "opacity-75"}`}>
+            <div className="h-px w-full bg-background/15 mb-3.5" />
+            <h3 className="font-display italic text-2xl text-background tracking-wide">
+              Lễ Vu Quy
+            </h3>
+            <div className="mt-1 flex items-baseline gap-2 font-sans">
+              <span className="font-display text-2xl font-bold tracking-tight text-[#f5f0e6]">
+                16:30
+              </span>
+              <span className="text-background/40 font-light">—</span>
+              <span className="text-sm font-medium text-[#d4b87a] tracking-wide">
+                Thứ Bảy, 28.11.2026
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-background/55 italic font-display">
+              Đón khách & Dùng tiệc
+            </p>
+          </div>
+
+          {/* Block 2: Lễ Thành Hôn */}
+          <div className={`transition-opacity duration-300 ${role === "his" ? "opacity-100" : "opacity-75"}`}>
+            <div className="h-px w-full bg-background/15 mb-3.5" />
+            <h3 className="font-display italic text-2xl text-background tracking-wide">
+              Lễ Thành Hôn
+            </h3>
+            <div className="mt-1 flex items-baseline gap-2 font-sans">
+              <span className="font-display text-2xl font-bold tracking-tight text-[#f5f0e6]">
+                10:30
+              </span>
+              <span className="text-background/40 font-light">—</span>
+              <span className="text-sm font-medium text-[#d4b87a] tracking-wide">
+                Chủ Nhật, 29.11.2026
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-background/55 italic font-display">
+              Hôn lễ & Tiệc mừng
+            </p>
+          </div>
+
+          {/* Block 3: Địa Điểm Tổ Chức */}
+          <div className="shrink-0">
+            <div className="h-px w-full bg-background/15 mb-3.5" />
+            <p className="text-[10px] uppercase tracking-[0.22em] text-background/50 font-sans mb-1.5">
+              ĐỊA ĐIỂM TỔ CHỨC
+            </p>
+
+            <h4 className="font-display text-xl sm:text-2xl text-background leading-tight">
+              {weddingData.venue.name}
+            </h4>
+            <p className="mt-1 text-xs text-background/70 leading-relaxed font-sans">
+              {weddingData.venue.address}
+            </p>
+
+            <div className="mt-3.5">
+              <button
+                type="button"
+                onClick={() => setMapsOpen(true)}
+                className="cursor-pointer group inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] text-[#f5f0e6] transition-colors hover:text-[#d4b87a]"
+              >
+                <span className="border-b border-current pb-0.5 font-medium">
+                  [ Xem bản đồ → ]
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================= */}
+        {/* DESKTOP VIEWPORT (>= md): Classic Pinned Editorial Rows    */}
+        {/* ========================================================= */}
         <div
-          className={`mx-auto flex h-full w-full max-w-7xl flex-col justify-center pb-[var(--section-nav-height,0px)] ${CONTENT_INSET}`}
+          className={`hidden md:flex mx-auto h-full w-full max-w-7xl flex-col justify-center pb-[var(--section-nav-height,0px)] ${CONTENT_INSET}`}
         >
           {/* Cụm nội dung gắn kết 3 khối: Lễ 1 + Lễ 2 + Địa điểm đặt tại trung tâm */}
           <div className="flex flex-col justify-center">

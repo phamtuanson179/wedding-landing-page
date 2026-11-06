@@ -20,6 +20,29 @@
 }
 
 @layer base {
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  @keyframes gallery-fade {
+    from {
+      opacity: 0;
+      transform: scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .gallery-showcase-img {
+    animation: gallery-fade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
   html {
     scrollbar-width: none;
     -ms-overflow-style: none;

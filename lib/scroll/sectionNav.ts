@@ -13,10 +13,9 @@ gsap.registerPlugin(ScrollToPlugin, ScrollTrigger);
 export const SECTION_NAV_ITEMS = [
   { id: SECTION_IDS[0], index: "01", shortLabel: "HOME", label: "Trang chủ" },
   { id: SECTION_IDS[1], index: "02", shortLabel: "INTRO", label: "Giới thiệu" },
-  { id: SECTION_IDS[2], index: "03", shortLabel: "STORY", label: "Câu chuyện" },
-  { id: SECTION_IDS[3], index: "04", shortLabel: "ALBUM", label: "Album" },
-  { id: SECTION_IDS[4], index: "05", shortLabel: "EVENT", label: "Lễ cưới" },
-  { id: SECTION_IDS[5], index: "06", shortLabel: "GIFT", label: "Mừng cưới" },
+  { id: SECTION_IDS[3], index: "03", shortLabel: "ALBUM", label: "Album" },
+  { id: SECTION_IDS[4], index: "04", shortLabel: "EVENT", label: "Lễ cưới" },
+  { id: SECTION_IDS[5], index: "05", shortLabel: "GIFT", label: "Mừng cưới" },
 ] as const;
 
 export type SectionNavItem = (typeof SECTION_NAV_ITEMS)[number];
@@ -26,8 +25,12 @@ export const SECTION_NAV_BAR_HEIGHT_PX = 42;
 
 /** Dark burgundy sections — nav uses ivory chrome instead of charcoal. */
 export function isSectionNavOnDark(sectionIndex: number) {
-  const id = SECTION_IDS[sectionIndex];
-  return id === "section-3" || id === "section-5" || id === "section-6";
+  const item = SECTION_NAV_ITEMS[sectionIndex];
+  if (!item) {
+    return false;
+  }
+  const id = item.id;
+  return id === "section-5" || id === "section-6";
 }
 
 /** Resolved px height of the fixed section nav (0 while hidden). */
@@ -60,8 +63,8 @@ export function getActiveSectionIndex(thresholdRatio = 0.5) {
   const threshold = window.innerHeight * thresholdRatio;
   let current = 0;
 
-  for (let index = 0; index < SECTION_IDS.length; index += 1) {
-    const section = document.getElementById(SECTION_IDS[index]);
+  for (let index = 0; index < SECTION_NAV_ITEMS.length; index += 1) {
+    const section = document.getElementById(SECTION_NAV_ITEMS[index].id);
     if (!section) {
       continue;
     }

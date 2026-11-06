@@ -22,16 +22,20 @@ gsap.registerPlugin(ScrollTrigger);
 
 const HERO_IMAGES = [
   {
-    src: "https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=2200&q=80",
-    position: "object-[center_42%] md:object-center",
+    src: "/images/hero/hero-1.webp",
+    position: "object-[center_50%]",
   },
   {
-    src: "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=2200&q=80",
-    position: "object-[center_38%] md:object-center",
+    src: "/images/hero/hero-2.webp",
+    position: "object-[center_28%]",
   },
   {
-    src: "https://images.unsplash.com/photo-1606216794074-735e91aa2c92?auto=format&fit=crop&w=2200&q=80",
-    position: "object-[center_40%] md:object-[center_45%]",
+    src: "/images/hero/hero-3.webp",
+    position: "object-[center_50%]",
+  },
+  {
+    src: "/images/hero/hero-4.webp",
+    position: "object-[center_60%]",
   },
 ] as const;
 
@@ -358,6 +362,7 @@ export function HeroSection() {
               fill
               sizes="100vw"
               priority={index === 0}
+              unoptimized
               className={`hero-slide-media object-cover will-change-transform ${position}`}
               draggable={false}
             />
@@ -366,7 +371,7 @@ export function HeroSection() {
       </div>
 
       <div
-        className="pointer-events-none absolute inset-0 z-1 bg-black/55"
+        className="pointer-events-none absolute inset-0 z-1 bg-gradient-to-b from-black/55 via-black/40 to-black/65"
         aria-hidden="true"
       />
 

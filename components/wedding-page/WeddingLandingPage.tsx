@@ -30,7 +30,7 @@ export function WeddingLandingPage({ role = "his" }: { role?: WeddingRole }) {
 
           <IntroductionSection role={role} />
 
-          <LoveStorySection />
+          {/* <LoveStorySection /> */}
 
           <GallerySection />
 

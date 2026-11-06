@@ -289,9 +289,12 @@ export function setGalleryChromeVisible(visible: boolean) {
       scrollPolygon,
     ].filter(Boolean) as HTMLElement[];
 
-    gsap.set(targets, {
+    gsap.to(targets, {
       autoAlpha: 0,
       visibility: "hidden",
+      duration: 0.25,
+      ease: "power2.out",
+      overwrite: true,
     });
     return;
   }

@@ -16,6 +16,10 @@ type Person = {
   quote: string;
   image: string;
   imagePosition: string;
+  zoom?: number; // 1 = 100%, 1.2 = zoom vào 120%, 0.9 = thu nhỏ 90%
+  offsetX?: number; // % dịch ngang: -5 là sang trái 5%, +5 là sang phải 5%
+  offsetY?: number; // % dịch dọc: -5 là lên trên 5%, +5 là xuống dưới 5%
+  zoomOrigin?: string; // Tùy chọn điểm neo zoom
 };
 
 const GROOM: Person = {
@@ -24,9 +28,11 @@ const GROOM: Person = {
   nickname: "Sơn",
   quote:
     "Mười năm không dài, nhưng đủ để biết bản thân muốn che chở cho một người đến hết đời.",
-  image:
-    "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=1200&q=80",
-  imagePosition: "object-[center_20%]",
+  image: "/images/intro/groom.webp",
+  imagePosition: "object-[center_50%]",
+  zoom: 1.5,
+  offsetX: 0, // 👈 Chỉnh sang trái / phải ở đây (ví dụ: -5 là sang trái, 5 là sang phải)
+  offsetY: -5, // 👈 Chỉnh lên / xuống ở đây (ví dụ: -5 là lên trên, 5 là xuống dưới)
 };
 
 const BRIDE: Person = {
@@ -35,9 +41,11 @@ const BRIDE: Person = {
   nickname: "Linh",
   quote:
     "Cảm ơn vì đã luôn là chỗ dựa bình yên và dịu dàng nhất sau mọi bão giông.",
-  image:
-    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80",
-  imagePosition: "object-[center_18%]",
+  image: "/images/intro/bride.webp",
+  imagePosition: "object-[center_50%]",
+  zoom: 1.5,
+  offsetX: 10, // 👈 Chỉnh sang trái / phải ở đây
+  offsetY: -10, // 👈 Chỉnh lên / xuống ở đây
 };
 
 const LEFT_MASK_HIDDEN = "inset(0% 100% 0% 0%)";
@@ -247,7 +255,12 @@ function IntroDesktop({
                 fill
                 sizes="50vw"
                 priority
-                className={`object-cover ${GROOM.imagePosition} saturate-[0.78] brightness-[0.92]`}
+                unoptimized
+                style={{
+                  transform: `translate(${GROOM.offsetX ?? 0}%, ${GROOM.offsetY ?? 0}%) scale(${GROOM.zoom ?? 1})`,
+                  transformOrigin: GROOM.zoomOrigin ?? "center 35%",
+                }}
+                className={`object-cover ${GROOM.imagePosition} saturate-[0.95] brightness-[0.98]`}
               />
             </div>
           </div>
@@ -272,7 +285,12 @@ function IntroDesktop({
                 fill
                 sizes="50vw"
                 priority
-                className={`object-cover ${BRIDE.imagePosition} saturate-[0.78] brightness-[0.92]`}
+                unoptimized
+                style={{
+                  transform: `translate(${BRIDE.offsetX ?? 0}%, ${BRIDE.offsetY ?? 0}%) scale(${BRIDE.zoom ?? 1})`,
+                  transformOrigin: BRIDE.zoomOrigin ?? "center 38%",
+                }}
+                className={`object-cover ${BRIDE.imagePosition} saturate-[0.95] brightness-[0.98]`}
               />
             </div>
           </div>
@@ -413,7 +431,12 @@ function MobilePortrait({
           alt={person.fullName}
           fill
           sizes="48vw"
-          className={`object-cover ${person.imagePosition} saturate-[0.8] brightness-[0.9]`}
+          unoptimized
+          style={{
+            transform: `translate(${person.offsetX ?? 0}%, ${person.offsetY ?? 0}%) scale(${person.zoom ?? 1})`,
+            transformOrigin: person.zoomOrigin ?? "center 35%",
+          }}
+          className={`object-cover ${person.imagePosition} saturate-[0.95] brightness-[0.98]`}
         />
       </div>
     </div>

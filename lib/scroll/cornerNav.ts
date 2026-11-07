@@ -4,9 +4,8 @@ import { isPreloaderPolygonAnimating } from "@/lib/preloader/preloaderState";
 export const SECTION_IDS = [
   "main",
   "section-2",
-  "section-3",
-  "section-4",
   "section-5",
+  "section-4",
   "section-6",
 ] as const;
 
@@ -170,10 +169,7 @@ export function setScrollProgressColor(theme: "accent" | "beige") {
 
 export function updateScrollProgressTheme() {
   const currentId = SECTION_IDS[getCurrentSectionIndex()];
-  const useBeige =
-    currentId === "section-3" ||
-    currentId === "section-5" ||
-    currentId === "section-6";
+  const useBeige = currentId === "section-6";
 
   setScrollProgressColor(useBeige ? "beige" : "accent");
 }

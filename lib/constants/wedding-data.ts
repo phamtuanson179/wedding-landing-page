@@ -57,20 +57,20 @@ export const VENUES: Record<WeddingRole, VenueInfo> = {
   his: {
     id: "his",
     sideLabel: "Nhà Trai",
-    name: "Nhà văn hoá xã Gia Lâm",
-    address: "Đường Ỷ Lan, Gia Lâm, Hà Nội",
-    mapsQuery: "Đường Ỷ Lan, Gia Lâm, Hà Nội",
+    name: "Trung Tâm Văn Hóa - Thể Thao Xã Dương Xá",
+    address: "15/9 Ỷ Lan, Đường Đình, Gia Lâm, Hà Nội",
+    mapsQuery: "Trung Tâm Văn Hóa Thể Thao Xã Dương Xá, Gia Lâm, Hà Nội",
     mapsUrl:
-      "https://www.google.com/maps/search/?api=1&query=%C4%90%C6%B0%E1%BB%9Dng+%E1%BB%B6+Lan%2C+Gia+L%C3%A2m%2C+H%C3%A0+N%E1%BB%99i",
+      "https://www.google.com/maps/search/?api=1&query=Trung+T%C3%A2m+V%C4%83n+H%C3%B3a+Th%E1%BB%83+Thao+X%C3%A3+D%C6%B0%C6%A1ng+X%C3%A1%2C+Gia+L%C3%A2m%2C+H%C3%A0+N%E1%BB%99i",
   },
   hers: {
     id: "hers",
     sideLabel: "Nhà Gái",
-    name: "Tư gia Nhà Gái",
+    name: "Nhà Văn Hóa Thôn Yên Mỹ",
     address: "Thôn Yên Mỹ, Xã Thuận An, Hà Nội",
-    mapsQuery: "Thôn Yên Mỹ, Thuận An, Hà Nội",
+    mapsQuery: "Nhà Văn Hóa Thôn Yên Mỹ, Thuận An, Hà Nội",
     mapsUrl:
-      "https://www.google.com/maps/search/?api=1&query=Th%C3%B4n+Y%C3%AAn+M%E1%BB%B9%2C+Thu%E1%BA%ADn+An%2C+H%C3%A0+N%E1%BB%99i",
+      "https://www.google.com/maps/search/?api=1&query=Nh%C3%A0+V%C4%83n+H%C3%B3a+Th%C3%B4n+Y%C3%AAn+M%E1%BB%B9%2C+Thu%E1%BA%ADn+An%2C+H%C3%A0+N%E1%BB%99i",
   },
 };
 
@@ -123,7 +123,7 @@ export const WEDDING_DATA: Record<WeddingRole, WeddingSideData> = {
       title: "Nhà Trai",
       father: "Ông Phạm Danh Tĩnh",
       mother: "Bà Đặng Thị Uyên",
-      address: "Số nhà .... Đường Ỷ Lan, xã Gia Lâm, TP. Hà Nội",
+      address: "Số 2 Ngõ 12 Ỷ Lan, Đường Đình, Gia Lâm, TP. Hà Nội",
     },
     announcementTitle: "TRÂN TRỌNG BÁO TIN LỄ VU QUY CỦA CON CHÚNG TÔI",
     venue: VENUES.hers,
@@ -162,7 +162,7 @@ export const WEDDING_DATA: Record<WeddingRole, WeddingSideData> = {
       title: "Nhà Trai",
       father: "Ông Phạm Danh Tĩnh",
       mother: "Bà Đặng Thị Uyên",
-      address: "Số nhà .... Đường Ỷ Lan, xã Gia Lâm, TP. Hà Nội",
+      address: "Số 2 Ngõ 12 Ỷ Lan, Đường Đình, Gia Lâm, TP. Hà Nội",
     },
     secondaryFamily: {
       title: "Nhà Gái",

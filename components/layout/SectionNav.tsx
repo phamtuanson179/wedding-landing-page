@@ -186,7 +186,7 @@ export function SectionNav() {
       }}
     >
       <ul
-        className={`mx-auto grid h-[42px] w-full shrink-0 grid-cols-6 ${
+        className={`mx-auto grid h-[42px] w-full shrink-0 grid-cols-5 ${
           interactive ? "pointer-events-auto" : "pointer-events-none"
         }`}
       >

@@ -1,45 +1,115 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { getScroller, setCornerNavColor } from "@/lib/scroll/cornerNav";
-import {
-  getWeddingData,
-  TIMELINE_ROWS,
-  type TimelineRow,
-  type WeddingRole,
-} from "@/lib/constants/wedding-data";
+import { type WeddingRole } from "@/lib/constants/wedding-data";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const CONTENT_INSET = "px-6 md:px-20 lg:px-28 xl:px-36";
+interface MapTarget {
+  title: string;
+  query: string;
+  url: string;
+}
+
+interface WeddingEventConfig {
+  subtitle: string;
+  banquet: {
+    badge: string;
+    time: string;
+    date: string;
+    lunarDate: string;
+    venueName: string;
+    venueAddress: string;
+    mapsQuery: string;
+    mapsUrl: string;
+  };
+  ceremony: {
+    badge: string;
+    time: string;
+    date: string;
+    note: string;
+    venueName: string;
+    venueAddress: string;
+    mapsQuery: string;
+    mapsUrl: string;
+  };
+}
+
+const EVENT_CONFIGS: Record<WeddingRole, WeddingEventConfig> = {
+  his: {
+    subtitle: "TIỆC CƯỚI & LỄ THÀNH HÔN",
+    banquet: {
+      badge: "TIỆC MỪNG (DÙNG TIỆC CHUNG VUI)",
+      time: "10:45",
+      date: "Chủ Nhật, 29.11.2026",
+      lunarDate: "Tức ngày 21.10 năm Bính Ngọ",
+      venueName: "Trung Tâm Văn Hóa - Thể Thao Xã Dương Xá",
+      venueAddress: "15/9 Ỷ Lan, Đường Đình, Gia Lâm, Hà Nội",
+      mapsQuery: "Trung Tâm Văn Hóa Thể Thao Xã Dương Xá, 15/9 Ỷ Lan, Gia Lâm, Hà Nội",
+      mapsUrl:
+        "https://www.google.com/maps/search/?api=1&query=Trung+T%C3%A2m+V%C4%83n+H%C3%B3a+Th%E1%BB%83+Thao+X%C3%A3+D%C6%B0%C6%A1ng+X%C3%A1%2C+Gia+L%C3%A2m%2C+H%C3%A0+N%E1%BB%99i",
+    },
+    ceremony: {
+      badge: "LỄ THÀNH HÔN (TƯ GIA)",
+      time: "10:00",
+      date: "Chủ Nhật, 29.11.2026",
+      note: "Hôn lễ truyền thống tại gia đình",
+      venueName: "Tư gia Nhà Trai",
+      venueAddress: "Số 2 Ngõ 12 Ỷ Lan, Đường Đình, Gia Lâm, Hà Nội",
+      mapsQuery: "Số 2 Ngõ 12 Ỷ Lan, Đường Đình, Gia Lâm, Hà Nội",
+      mapsUrl:
+        "https://www.google.com/maps/search/?api=1&query=S%E1%BB%91+2+Ng%C3%B5+12+%E1%BB%B6+Lan%2C+%C4%90%C6%B0%E1%BB%9Dng+%C4%90%C3%ACnh%2C+Gia+L%C3%A2m%2C+H%C3%A0+N%E1%BB%99i",
+    },
+  },
+  hers: {
+    subtitle: "TIỆC CƯỚI & LỄ VU QUY",
+    banquet: {
+      badge: "TIỆC CƯỚI (ĐÓN KHÁCH & DÙNG TIỆC)",
+      time: "16:30",
+      date: "Thứ Bảy, 28.11.2026",
+      lunarDate: "Tức ngày 20.10 năm Bính Ngọ",
+      venueName: "Nhà Văn Hóa Thôn Yên Mỹ",
+      venueAddress: "Thôn Yên Mỹ, Xã Thuận An, Hà Nội",
+      mapsQuery: "Nhà Văn Hóa Thôn Yên Mỹ, Thuận An, Hà Nội",
+      mapsUrl:
+        "https://www.google.com/maps/search/?api=1&query=Nh%C3%A0+V%C4%83n+H%C3%B3a+Th%C3%B4n+Y%C3%AAn+M%E1%BB%B9%2C+Thu%E1%BA%ADn+An%2C+H%C3%A0+N%E1%BB%99i",
+    },
+    ceremony: {
+      badge: "LỄ VU QUY (TƯ GIA)",
+      time: "08:30",
+      date: "Chủ Nhật, 29.11.2026",
+      note: "Lễ rước dâu & chúc phúc gia đình",
+      venueName: "Tư gia Nhà Gái",
+      venueAddress: "Thôn Yên Mỹ, Xã Thuận An, Hà Nội",
+      mapsQuery: "Thôn Yên Mỹ, Thuận An, Hà Nội",
+      mapsUrl:
+        "https://www.google.com/maps/search/?api=1&query=Th%C3%B4n+Y%C3%AAn+M%E1%BB%B9%2C+Thu%E1%BA%ADn+An%2C+H%C3%A0+N%E1%BB%99i",
+    },
+  },
+};
 
 function MapsModal({
-  open,
+  target,
   onClose,
-  mapsQuery,
-  mapsUrl,
 }: {
-  open: boolean;
+  target: MapTarget | null;
   onClose: () => void;
-  mapsQuery: string;
-  mapsUrl: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const backdropRef = useRef<HTMLButtonElement>(null);
 
+  const open = target !== null;
+
   useLayoutEffect(() => {
-    if (!open) {
-      return;
-    }
+    if (!open) return;
 
     const panel = panelRef.current;
     const backdrop = backdropRef.current;
-    if (!panel || !backdrop) {
-      return;
-    }
+    if (!panel || !backdrop) return;
 
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
@@ -72,17 +142,13 @@ function MapsModal({
   }, [open]);
 
   useEffect(() => {
-    if (!open) {
-      return;
-    }
+    if (!open) return;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
+      if (event.key === "Escape") onClose();
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -116,18 +182,18 @@ function MapsModal({
       );
   };
 
-  if (!open || typeof document === "undefined") {
+  if (!open || !target || typeof document === "undefined") {
     return null;
   }
 
-  const embedSrc = `https://maps.google.com/maps?q=${encodeURIComponent(mapsQuery)}&hl=vi&z=15&output=embed`;
+  const embedSrc = `https://maps.google.com/maps?q=${encodeURIComponent(target.query)}&hl=vi&z=15&output=embed`;
 
   return createPortal(
     <div
       className="fixed inset-0 z-[80] flex items-center justify-center p-4 md:p-8"
       role="dialog"
       aria-modal="true"
-      aria-label="Bản đồ địa điểm cưới"
+      aria-label={`Bản đồ ${target.title}`}
     >
       <button
         ref={backdropRef}
@@ -144,18 +210,18 @@ function MapsModal({
         <div className="flex items-center justify-between border-b border-background/15 px-4 py-3 md:px-6 md:py-4">
           <div className="min-w-0 pr-4">
             <p className="truncate font-display text-sm text-background md:text-base">
-              Địa điểm cưới
+              {target.title}
             </p>
-            <p className="truncate text-xs text-background/60">{mapsQuery}</p>
+            <p className="truncate text-xs text-background/60">{target.query}</p>
           </div>
           <div className="flex items-center gap-2">
             <a
-              href={mapsUrl}
+              href={target.url}
               target="_blank"
               rel="noopener noreferrer"
               className="cursor-pointer whitespace-nowrap border border-background/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-background/80 transition-colors hover:border-background hover:text-background md:px-3 md:text-xs md:tracking-[0.2em]"
             >
-              Mở Maps
+              Mở Google Maps
             </a>
             <button
               type="button"
@@ -168,7 +234,7 @@ function MapsModal({
         </div>
 
         <iframe
-          title="Bản đồ địa điểm cưới"
+          title={`Bản đồ ${target.title}`}
           src={embedSrc}
           className="h-full w-full border-0"
           loading="eager"
@@ -181,130 +247,20 @@ function MapsModal({
   );
 }
 
-function ScheduleRow({
-  row,
-  dataAttr,
-  hoverable = true,
-  isActive = false,
-  valueRef,
-}: {
-  row: TimelineRow;
-  dataAttr: string;
-  hoverable?: boolean;
-  isActive?: boolean;
-  valueRef?: RefObject<HTMLParagraphElement | null>;
-}) {
-  const rowRef = useRef<HTMLDivElement>(null);
-
-  const handleEnter = () => {
-    if (!hoverable) {
-      return;
-    }
-
-    const timeEl = rowRef.current?.querySelector<HTMLElement>(
-      "[data-wedding-time]",
-    );
-    if (!timeEl) {
-      return;
-    }
-
-    gsap.to(timeEl, {
-      x: 5,
-      color: "#a63d52",
-      duration: 0.45,
-      ease: "power2.out",
-      overwrite: true,
-    });
-  };
-
-  const handleLeave = () => {
-    if (!hoverable) {
-      return;
-    }
-
-    const timeEl = rowRef.current?.querySelector<HTMLElement>(
-      "[data-wedding-time]",
-    );
-    if (!timeEl) {
-      return;
-    }
-
-    gsap.to(timeEl, {
-      x: 0,
-      color: "#e6dfd3",
-      duration: 0.45,
-      ease: "power2.out",
-      overwrite: true,
-    });
-  };
-
-  return (
-    <div
-      ref={rowRef}
-      data-wedding-row={dataAttr}
-      className={`grid grid-cols-[1fr_auto] items-end gap-3 border-b border-background/10 py-3.5 transition-opacity duration-300 sm:py-5 md:gap-6 md:py-6 lg:py-8 ${
-        isActive ? "opacity-100" : "opacity-50 hover:opacity-85"
-      } ${hoverable ? "cursor-default" : "pointer-events-none"}`}
-      onMouseEnter={hoverable ? handleEnter : undefined}
-      onMouseLeave={hoverable ? handleLeave : undefined}
-      onFocus={hoverable ? handleEnter : undefined}
-      onBlur={hoverable ? handleLeave : undefined}
-    >
-      {/* Cột trái: Tên lễ + Ngày tháng + Địa điểm */}
-      <div className="min-w-0 pr-2">
-        <div className="hidden md:block">
-          <p className="truncate font-display text-xl italic text-background/92 lg:text-3xl">
-            {row.title} <span className="mx-1 text-background/40">·</span> {row.dateStr}
-          </p>
-          <p className="mt-1.5 text-[10px] uppercase tracking-[0.22em] text-background/45 md:text-xs">
-            {row.subtitle}
-          </p>
-        </div>
-
-        <div className="block md:hidden">
-          <p className="font-display text-base italic leading-tight text-background/95 sm:text-lg">
-            {row.title}
-          </p>
-          <p className="mt-0.5 text-xs font-normal text-[#d4b87a]">
-            {row.dateStr}
-          </p>
-          <p className="mt-1 text-[9px] uppercase tracking-[0.16em] text-background/50">
-            {row.subtitle}
-          </p>
-        </div>
-      </div>
-
-      {/* Cột phải: Số giờ to và subtext */}
-      <div className="shrink-0 text-right">
-        <p
-          ref={valueRef}
-          data-wedding-time
-          className="font-display text-[clamp(1.75rem,5.5vw,4.5rem)] leading-none text-background will-change-transform"
-        >
-          {row.timeStr}
-        </p>
-        <p className="mt-1 text-[10px] text-background/45 md:mt-2 md:text-xs">
-          {row.timeNote}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
-  const weddingData = getWeddingData(role);
-  const sectionRef = useRef<HTMLElement>(null);
-  const row1Ref = useRef<HTMLDivElement>(null);
-  const row2Ref = useRef<HTMLDivElement>(null);
-  const venueRef = useRef<HTMLDivElement>(null);
+  const config = EVENT_CONFIGS[role] ?? EVENT_CONFIGS.his;
 
-  const [mapsOpen, setMapsOpen] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const ruleRef = useRef<HTMLDivElement>(null);
+  const col1Ref = useRef<HTMLDivElement>(null);
+  const col2Ref = useRef<HTMLDivElement>(null);
+
+  const [activeMap, setActiveMap] = useState<MapTarget | null>(null);
 
   useLayoutEffect(() => {
     const section = sectionRef.current;
-    if (!section) {
-      return;
-    }
+    if (!section) return;
 
     const scroller = getScroller();
     const chromeTrigger = ScrollTrigger.create({
@@ -313,9 +269,9 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
       end: "bottom 50%",
       scroller,
       invalidateOnRefresh: true,
-      onEnter: () => setCornerNavColor("hero"),
-      onEnterBack: () => setCornerNavColor("hero"),
-      onLeaveBack: () => setCornerNavColor("accent"),
+      onEnter: () => setCornerNavColor("accent"),
+      onEnterBack: () => setCornerNavColor("accent"),
+      onLeaveBack: () => setCornerNavColor("hero"),
     });
 
     return () => {
@@ -325,11 +281,12 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
 
   useLayoutEffect(() => {
     const section = sectionRef.current;
-    const row1 = row1Ref.current;
-    const row2 = row2Ref.current;
-    const venue = venueRef.current;
+    const header = headerRef.current;
+    const rule = ruleRef.current;
+    const col1 = col1Ref.current;
+    const col2 = col2Ref.current;
 
-    if (!section || !row1 || !row2 || !venue) {
+    if (!section || !header || !rule || !col1 || !col2) {
       return;
     }
 
@@ -337,13 +294,11 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
       "(prefers-reduced-motion: reduce)",
     ).matches;
 
-    if (prefersReducedMotion) {
-      return;
-    }
+    if (prefersReducedMotion) return;
 
     const scroller = getScroller();
-
-    gsap.set([row1, row2, venue], { y: 28, autoAlpha: 0 });
+    const targets = [header, rule, col1, col2];
+    gsap.set(targets, { y: 24, autoAlpha: 0 });
 
     const timeline = gsap.timeline({
       scrollTrigger: {
@@ -356,17 +311,10 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
     });
 
     timeline
-      .to(row1, { y: 0, autoAlpha: 1, duration: 0.75, ease: "power3.out" })
-      .to(
-        row2,
-        { y: 0, autoAlpha: 1, duration: 0.75, ease: "power3.out" },
-        "-=0.4",
-      )
-      .to(
-        venue,
-        { y: 0, autoAlpha: 1, duration: 0.8, ease: "power3.out" },
-        "-=0.25",
-      );
+      .to(header, { y: 0, autoAlpha: 1, duration: 0.8, ease: "power3.out" })
+      .to(rule, { y: 0, autoAlpha: 1, duration: 0.6, ease: "power3.out" }, "-=0.5")
+      .to(col1, { y: 0, autoAlpha: 1, duration: 0.8, ease: "power3.out" }, "-=0.4")
+      .to(col2, { y: 0, autoAlpha: 1, duration: 0.8, ease: "power3.out" }, "-=0.55");
 
     const refresh = () => ScrollTrigger.refresh();
     window.addEventListener("resize", refresh);
@@ -376,175 +324,166 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
       timeline.scrollTrigger?.kill();
       timeline.kill();
     };
-  }, []);
+  }, [role]);
 
   return (
     <>
       <section
         id="section-5"
         ref={sectionRef}
-        className="relative flex h-dvh min-h-dvh flex-col justify-center overflow-hidden bg-[#0a0a0a] text-background"
+        className="relative flex min-h-dvh flex-col justify-center overflow-hidden bg-background text-foreground py-20 sm:py-24 md:py-28 pb-[calc(var(--section-nav-height,0px)+3rem)]"
       >
-        {/* ========================================================= */}
-        {/* MOBILE VIEWPORT (< md): Editorial Stacking Layout         */}
-        {/* ========================================================= */}
-        <div className="flex md:hidden flex-col justify-between h-full min-h-dvh w-full max-w-lg mx-auto px-6 sm:px-8 pt-12 pb-[calc(var(--section-nav-height,0px)+1.5rem)] text-background text-left">
-          {/* Header */}
-          <div className="shrink-0">
-            <span className="text-[10px] tracking-[0.25em] uppercase text-background/50 font-sans block mb-1">
-              04 / EVENT TIMELINE
+        <div className="relative z-10 w-full max-w-6xl xl:max-w-7xl mx-auto px-6 sm:px-10 md:px-14 lg:px-20 text-left">
+          
+          {/* ========================================================= */}
+          {/* 1. EDITORIAL HEADER & TITLE                               */}
+          {/* ========================================================= */}
+          <div ref={headerRef} className="max-w-3xl">
+            <span className="text-[10px] sm:text-[11px] font-sans uppercase tracking-[0.3em] text-primary font-medium block mb-2 sm:mb-2.5">
+              03 / TIMELINE &amp; LOCATION
             </span>
-            <h2 className="font-display italic text-2xl sm:text-3xl text-background tracking-wide">
+            <h2 className="font-display italic text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-foreground tracking-tight leading-tight">
               Chương Trình Hôn Lễ
             </h2>
+            <span className="text-xs sm:text-sm font-sans uppercase tracking-[0.24em] text-foreground/50 font-medium mt-2.5 block">
+              {config.subtitle}
+            </span>
           </div>
 
-          {/* Block 1: Lễ Vu Quy */}
-          <div className={`transition-opacity duration-300 ${role === "hers" ? "opacity-100" : "opacity-75"}`}>
-            <div className="h-px w-full bg-background/15 mb-3.5" />
-            <h3 className="font-display italic text-2xl text-background tracking-wide">
-              Lễ Vu Quy
-            </h3>
-            <div className="mt-1 flex items-baseline gap-2 font-sans">
-              <span className="font-display text-2xl font-bold tracking-tight text-[#f5f0e6]">
-                16:30
+          {/* Horizontal Rule */}
+          <div ref={ruleRef} className="h-px w-full bg-foreground/15 mt-6 sm:mt-8 mb-10 sm:mb-14 lg:mb-16" />
+
+          {/* ========================================================= */}
+          {/* 2. TWO-COLUMN EDITORIAL TYPOGRAPHIC SPREAD                */}
+          {/* ========================================================= */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 sm:gap-14 lg:gap-20 xl:gap-28 items-start">
+            
+            {/* ------------------------------------------------------- */}
+            {/* CỘT 1: TIỆC MỪNG CHÍNH (TÂM ĐIỂM CHO 90% KHÁCH MỜI)      */}
+            {/* ------------------------------------------------------- */}
+            <div ref={col1Ref} className="flex flex-col text-left">
+              <span className="text-xs font-sans uppercase tracking-[0.24em] text-primary font-medium block mb-3">
+                {config.banquet.badge}
               </span>
-              <span className="text-background/40 font-light">—</span>
-              <span className="text-sm font-medium text-[#d4b87a] tracking-wide">
-                Thứ Bảy, 28.11.2026
-              </span>
-            </div>
-            <p className="mt-1 text-xs text-background/55 italic font-display">
-              Đón khách & Dùng tiệc
-            </p>
-          </div>
 
-          {/* Block 2: Lễ Thành Hôn */}
-          <div className={`transition-opacity duration-300 ${role === "his" ? "opacity-100" : "opacity-75"}`}>
-            <div className="h-px w-full bg-background/15 mb-3.5" />
-            <h3 className="font-display italic text-2xl text-background tracking-wide">
-              Lễ Thành Hôn
-            </h3>
-            <div className="mt-1 flex items-baseline gap-2 font-sans">
-              <span className="font-display text-2xl font-bold tracking-tight text-[#f5f0e6]">
-                10:30
-              </span>
-              <span className="text-background/40 font-light">—</span>
-              <span className="text-sm font-medium text-[#d4b87a] tracking-wide">
-                Chủ Nhật, 29.11.2026
-              </span>
-            </div>
-            <p className="mt-1 text-xs text-background/55 italic font-display">
-              Hôn lễ & Tiệc mừng
-            </p>
-          </div>
-
-          {/* Block 3: Địa Điểm Tổ Chức */}
-          <div className="shrink-0">
-            <div className="h-px w-full bg-background/15 mb-3.5" />
-            <p className="text-[10px] uppercase tracking-[0.22em] text-background/50 font-sans mb-1.5">
-              ĐỊA ĐIỂM TỔ CHỨC
-            </p>
-
-            <h4 className="font-display text-xl sm:text-2xl text-background leading-tight">
-              {weddingData.venue.name}
-            </h4>
-            <p className="mt-1 text-xs text-background/70 leading-relaxed font-sans">
-              {weddingData.venue.address}
-            </p>
-
-            <div className="mt-3.5">
-              <button
-                type="button"
-                onClick={() => setMapsOpen(true)}
-                className="cursor-pointer group inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] text-[#f5f0e6] transition-colors hover:text-[#d4b87a]"
-              >
-                <span className="border-b border-current pb-0.5 font-medium">
-                  [ Xem bản đồ → ]
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ========================================================= */}
-        {/* DESKTOP VIEWPORT (>= md): Classic Pinned Editorial Rows    */}
-        {/* ========================================================= */}
-        <div
-          className={`hidden md:flex mx-auto h-full w-full max-w-7xl flex-col justify-center pb-[var(--section-nav-height,0px)] ${CONTENT_INSET}`}
-        >
-          {/* Cụm nội dung gắn kết 3 khối: Lễ 1 + Lễ 2 + Địa điểm đặt tại trung tâm */}
-          <div className="flex flex-col justify-center">
-            {/* Dòng 1: Lễ Vu Quy (Nhà Gái) */}
-            <div ref={row1Ref}>
-              <ScheduleRow
-                hoverable
-                isActive={role === "hers"}
-                dataAttr="vu-quy"
-                row={TIMELINE_ROWS[0]}
-              />
-            </div>
-
-            {/* Dòng 2: Lễ Thành Hôn (Nhà Trai) */}
-            <div ref={row2Ref}>
-              <ScheduleRow
-                hoverable
-                isActive={role === "his"}
-                dataAttr="thanh-hon"
-                row={TIMELINE_ROWS[1]}
-              />
-            </div>
-
-            {/* Dòng 3: Khối Địa điểm & Bản đồ (liền mạch ngay dưới Lễ 2) */}
-            <div
-              ref={venueRef}
-              className="grid shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,100px)] items-end gap-4 pt-6 sm:pt-7 md:gap-6 md:pt-8 lg:pt-9"
-            >
+              {/* Time & Date Display */}
               <div>
-                <h3 className="font-display text-[clamp(1.15rem,3vw,2.5rem)] leading-tight text-background">
-                  {weddingData.venue.name}
-                </h3>
-                <p className="mt-1 text-xs text-background/58 sm:text-sm md:mt-1.5 md:text-base">
-                  {weddingData.venue.address}
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-2.5 md:mt-4 md:gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setMapsOpen(true)}
-                    className="cursor-pointer border border-background/45 px-3.5 py-1.5 text-[10px] uppercase tracking-[0.2em] text-background/88 transition-[color,border-color,background-color] duration-300 hover:border-background hover:bg-background/8 hover:text-background md:px-4 md:py-2 md:text-xs md:tracking-[0.22em]"
-                  >
-                    Xem bản đồ
-                  </button>
-                  <a
-                    href={weddingData.venue.mapsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center border border-transparent px-2 py-1.5 text-[10px] uppercase tracking-[0.16em] text-background/50 transition-colors hover:text-background/80 md:px-2 md:py-2 md:text-xs md:tracking-[0.18em]"
-                  >
-                    Google Maps
-                  </a>
-                </div>
+                <span className="font-display text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-foreground block leading-none">
+                  {config.banquet.time}
+                </span>
+                
+                <span className="font-display text-xl sm:text-2xl lg:text-3xl font-medium text-foreground tracking-wide mt-3 sm:mt-4 block">
+                  {config.banquet.date}
+                </span>
+
+                <span className="text-xs sm:text-sm font-sans text-foreground/55 italic mt-1 block">
+                  ({config.banquet.lunarDate})
+                </span>
               </div>
 
-              <div className="text-right">
-                <p className="font-display text-base italic text-background/92 sm:text-lg md:text-xl lg:text-3xl">
-                  Place
-                </p>
-                <p className="mt-0.5 text-[9px] uppercase tracking-[0.2em] text-background/45 md:mt-1 md:text-xs md:tracking-[0.22em]">
-                  Địa điểm
+              {/* Venue Divider */}
+              <div className="h-px w-14 bg-foreground/15 my-5 sm:my-6" />
+
+              {/* Venue Info */}
+              <div>
+                <h3 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold text-foreground leading-snug">
+                  {config.banquet.venueName}
+                </h3>
+                <p className="mt-2 text-sm sm:text-base font-sans text-foreground/80 leading-relaxed max-w-md">
+                  {config.banquet.venueAddress}
                 </p>
               </div>
+
+              {/* Action Button */}
+              <div className="mt-6 sm:mt-8 flex flex-wrap items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveMap({
+                      title: config.banquet.venueName,
+                      query: config.banquet.mapsQuery,
+                      url: config.banquet.mapsUrl,
+                    })
+                  }
+                  className="cursor-pointer group inline-flex items-center gap-2 border border-foreground/35 bg-foreground/[0.04] px-5 sm:px-6 py-2.5 sm:py-3 text-xs uppercase tracking-[0.2em] text-foreground transition-all duration-300 hover:border-primary hover:bg-primary hover:text-white rounded-xs shadow-xs"
+                >
+                  <span className="font-medium">Xem bản đồ chỉ đường</span>
+                  <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
+                </button>
+                <a
+                  href={config.banquet.mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] uppercase tracking-[0.16em] text-foreground/50 hover:text-primary transition-colors underline underline-offset-4"
+                >
+                  Mở Google Maps ↗
+                </a>
+              </div>
             </div>
+
+            {/* ------------------------------------------------------- */}
+            {/* CỘT 2: LỄ TỔ CHỨC TẠI TƯ GIA (DÀNH CHO HỌ HÀNG, NGƯỜI THÂN) */}
+            {/* ------------------------------------------------------- */}
+            <div ref={col2Ref} className="flex flex-col text-left md:border-l md:border-foreground/15 md:pl-10 lg:pl-16 xl:pl-20">
+              <span className="text-xs font-sans uppercase tracking-[0.24em] text-foreground/50 font-medium block mb-3">
+                {config.ceremony.badge}
+              </span>
+
+              {/* Time & Date Display */}
+              <div>
+                <span className="font-display text-4xl sm:text-5xl lg:text-6xl font-medium tracking-tight text-foreground/80 block leading-none">
+                  {config.ceremony.time}
+                </span>
+
+                <span className="font-display text-lg sm:text-xl lg:text-2xl font-medium text-foreground/75 tracking-wide mt-3 sm:mt-4 block">
+                  {config.ceremony.date}
+                </span>
+
+                <span className="text-xs sm:text-sm font-sans text-foreground/50 italic mt-1 block">
+                  {config.ceremony.note}
+                </span>
+              </div>
+
+              {/* Venue Divider */}
+              <div className="h-px w-14 bg-foreground/15 my-5 sm:my-6" />
+
+              {/* Venue Info */}
+              <div>
+                <h3 className="font-display text-lg sm:text-xl lg:text-2xl font-medium text-foreground/90 leading-snug">
+                  {config.ceremony.venueName}
+                </h3>
+                <p className="mt-2 text-sm sm:text-base font-sans text-foreground/70 leading-relaxed max-w-md">
+                  {config.ceremony.venueAddress}
+                </p>
+              </div>
+
+              {/* Secondary Map Link */}
+              <div className="mt-6 sm:mt-8 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveMap({
+                      title: config.ceremony.venueName,
+                      query: config.ceremony.mapsQuery,
+                      url: config.ceremony.mapsUrl,
+                    })
+                  }
+                  className="cursor-pointer group inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] text-primary font-medium py-1"
+                >
+                  <span className="border-b border-primary/60 pb-0.5 transition-colors group-hover:border-primary">
+                    [ Chỉ đường tư gia ↗ ]
+                  </span>
+                </button>
+              </div>
+            </div>
+
           </div>
+
         </div>
       </section>
 
-      <MapsModal
-        open={mapsOpen}
-        onClose={() => setMapsOpen(false)}
-        mapsQuery={weddingData.venue.mapsQuery}
-        mapsUrl={weddingData.venue.mapsUrl}
-      />
+      {/* Embedded Maps Modal */}
+      <MapsModal target={activeMap} onClose={() => setActiveMap(null)} />
     </>
   );
 }

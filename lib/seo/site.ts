@@ -55,9 +55,8 @@ export const siteConfig = {
   sections: [
     { id: "main", path: "/#main", label: "Trang chủ" },
     { id: "section-2", path: "/#section-2", label: "Giới thiệu" },
-    { id: "section-3", path: "/#section-3", label: "Câu chuyện" },
-    { id: "section-4", path: "/#section-4", label: "Album" },
     { id: "section-5", path: "/#section-5", label: "Lễ cưới" },
+    { id: "section-4", path: "/#section-4", label: "Album" },
     { id: "section-6", path: "/#section-6", label: "Mừng cưới" },
   ],
   themeColor: "#800020",

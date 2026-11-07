@@ -13,9 +13,9 @@ gsap.registerPlugin(ScrollToPlugin, ScrollTrigger);
 export const SECTION_NAV_ITEMS = [
   { id: SECTION_IDS[0], index: "01", shortLabel: "HOME", label: "Trang chủ" },
   { id: SECTION_IDS[1], index: "02", shortLabel: "INTRO", label: "Giới thiệu" },
-  { id: SECTION_IDS[3], index: "03", shortLabel: "ALBUM", label: "Album" },
-  { id: SECTION_IDS[4], index: "04", shortLabel: "EVENT", label: "Lễ cưới" },
-  { id: SECTION_IDS[5], index: "05", shortLabel: "GIFT", label: "Mừng cưới" },
+  { id: SECTION_IDS[2], index: "03", shortLabel: "EVENT", label: "Lễ cưới" },
+  { id: SECTION_IDS[3], index: "04", shortLabel: "ALBUM", label: "Album" },
+  { id: SECTION_IDS[4], index: "05", shortLabel: "GIFT", label: "Mừng cưới" },
 ] as const;
 
 export type SectionNavItem = (typeof SECTION_NAV_ITEMS)[number];
@@ -30,7 +30,7 @@ export function isSectionNavOnDark(sectionIndex: number) {
     return false;
   }
   const id = item.id;
-  return id === "section-5" || id === "section-6";
+  return id === "section-6";
 }
 
 /** Resolved px height of the fixed section nav (0 while hidden). */
@@ -156,7 +156,7 @@ export function scrollToSection(sectionId: string) {
 export function scrollToNextSection() {
   const nextIndex = Math.min(
     getActiveSectionIndex(0.5) + 1,
-    SECTION_IDS.length - 1,
+    SECTION_NAV_ITEMS.length - 1,
   );
-  scrollToSection(SECTION_IDS[nextIndex]);
+  scrollToSection(SECTION_NAV_ITEMS[nextIndex].id);
 }

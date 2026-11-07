@@ -23,7 +23,7 @@ gsap.registerPlugin(ScrollTrigger);
 const HERO_IMAGES = [
   {
     src: "/images/hero/hero-1.webp",
-    position: "object-[center_50%]",
+    position: "object-[center_45%]",
   },
   {
     src: "/images/hero/hero-2.webp",
@@ -45,10 +45,10 @@ const CROSSFADE_DURATION = 0.9;
 const preloadedImages =
   typeof window !== "undefined"
     ? HERO_IMAGES.map(({ src }) => {
-        const image = new window.Image();
-        image.src = src;
-        return image;
-      })
+      const image = new window.Image();
+      image.src = src;
+      return image;
+    })
     : [];
 
 function waitForImages() {

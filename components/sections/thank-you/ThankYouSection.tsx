@@ -68,11 +68,10 @@ function QrPanel({ account }: { account: BankInfo }) {
               type="button"
               onClick={copyAccountNo}
               aria-live="polite"
-              className={`cursor-pointer border px-2.5 py-0.5 text-[9px] uppercase tracking-[0.16em] transition-colors md:px-3 md:py-1 md:text-[10px] md:tracking-[0.18em] ${
-                copied
-                  ? "border-[#f5c842] bg-[#f5c842] text-primary"
-                  : "border-background/45 text-[#d4b87a] hover:border-[#d4b87a] hover:text-background"
-              }`}
+              className={`cursor-pointer border px-2.5 py-0.5 text-[9px] uppercase tracking-[0.16em] transition-colors md:px-3 md:py-1 md:text-[10px] md:tracking-[0.18em] ${copied
+                ? "border-[#f5c842] bg-[#f5c842] text-primary"
+                : "border-background/45 text-[#d4b87a] hover:border-[#d4b87a] hover:text-background"
+                }`}
             >
               {copied ? "Đã sao chép" : "Sao chép"}
             </button>
@@ -217,8 +216,7 @@ export function ThankYouSection({ role = "his" }: { role?: WeddingRole }) {
               ref={messageRef}
               className="mt-3 text-xs leading-relaxed font-light text-background/78 md:mt-5 md:text-base md:leading-7"
             >
-              Việc có mặt của mọi người chính là niềm vui lớn nhất của cô dâu
-              chú rể. Chúng mình rất mong được đón bạn đến chung vui và gửi
+              Sự có mặt của quý khách là niềm hạnh phúc nhất của gia đình chúng mình. Chúng mình rất mong được đón bạn đến chung vui và gửi
               lời chúc phúc trong ngày trọng đại này.
             </p>
           </header>

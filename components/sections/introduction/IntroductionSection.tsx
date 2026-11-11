@@ -563,7 +563,7 @@ function IntroMobile({
     <section
       id="section-2"
       ref={sectionRef}
-      className="relative flex min-h-dvh flex-col justify-center overflow-hidden bg-background text-foreground px-5 py-8 pb-[calc(80px+env(safe-area-inset-bottom,20px))]"
+      className="relative overflow-hidden bg-background text-foreground px-5 py-16 sm:py-20"
     >
       <div className="relative mx-auto flex w-full max-w-sm flex-col justify-center gap-4">
         {/* Header: Announcement & Parents */}

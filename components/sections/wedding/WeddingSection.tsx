@@ -34,6 +34,8 @@ interface WeddingEventConfig {
     note: string;
     venueName: string;
     venueAddress: string;
+    mobileNote: string;
+    mobileLocation: string;
     mapsQuery: string;
     mapsUrl: string;
   };
@@ -60,6 +62,8 @@ const EVENT_CONFIGS: Record<WeddingRole, WeddingEventConfig> = {
       note: "Hôn lễ truyền thống tại gia đình",
       venueName: "Tư gia Nhà Trai",
       venueAddress: "Số 2 Ngõ 12 Ỷ Lan, Đường Đình, Gia Lâm, Hà Nội",
+      mobileNote: "Lễ Thành Hôn cử hành lúc 10:00 cùng ngày tại",
+      mobileLocation: "Tư gia Nhà Trai (Số 2 Ngõ 12 Ỷ Lan)",
       mapsQuery: "Số 2 Ngõ 12 Ỷ Lan, Đường Đình, Gia Lâm, Hà Nội",
       mapsUrl:
         "https://www.google.com/maps/search/?api=1&query=S%E1%BB%91+2+Ng%C3%B5+12+%E1%BB%B6+Lan%2C+%C4%90%C6%B0%E1%BB%9Dng+%C4%90%C3%ACnh%2C+Gia+L%C3%A2m%2C+H%C3%A0+N%E1%BB%99i",
@@ -85,6 +89,8 @@ const EVENT_CONFIGS: Record<WeddingRole, WeddingEventConfig> = {
       note: "Lễ rước dâu & chúc phúc gia đình",
       venueName: "Tư gia Nhà Gái",
       venueAddress: "Thôn Yên Mỹ, Xã Thuận An, Hà Nội",
+      mobileNote: "Lễ Vu Quy cử hành lúc 08:30 (29.11) tại",
+      mobileLocation: "Tư gia Nhà Gái (Thôn Yên Mỹ)",
       mapsQuery: "Thôn Yên Mỹ, Thuận An, Hà Nội",
       mapsUrl:
         "https://www.google.com/maps/search/?api=1&query=Th%C3%B4n+Y%C3%AAn+M%E1%BB%B9%2C+Thu%E1%BA%ADn+An%2C+H%C3%A0+N%E1%BB%99i",
@@ -326,12 +332,26 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
     };
   }, [role]);
 
+  const openBanquetMap = () =>
+    setActiveMap({
+      title: config.banquet.venueName,
+      query: config.banquet.mapsQuery,
+      url: config.banquet.mapsUrl,
+    });
+
+  const openCeremonyMap = () =>
+    setActiveMap({
+      title: config.ceremony.venueName,
+      query: config.ceremony.mapsQuery,
+      url: config.ceremony.mapsUrl,
+    });
+
   return (
     <>
       <section
         id="section-5"
         ref={sectionRef}
-        className="relative flex min-h-dvh flex-col justify-center overflow-hidden bg-background text-foreground py-20 sm:py-24 md:py-28 pb-[calc(var(--section-nav-height,0px)+3rem)]"
+        className="relative overflow-hidden bg-background text-foreground pt-16 pb-12 sm:pt-20 sm:pb-16 md:flex md:min-h-dvh md:flex-col md:justify-center md:pt-32 md:pb-[calc(var(--section-nav-height,0px)+6rem)]"
       >
         <div className="relative z-10 w-full max-w-6xl xl:max-w-7xl mx-auto px-6 sm:px-10 md:px-14 lg:px-20 text-left">
           
@@ -345,24 +365,24 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
             <h2 className="font-display italic text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-foreground tracking-tight leading-tight">
               Chương Trình Hôn Lễ
             </h2>
-            <span className="text-xs sm:text-sm font-sans uppercase tracking-[0.24em] text-foreground/50 font-medium mt-2.5 block">
+            <span className="text-xs sm:text-sm font-sans uppercase tracking-[0.24em] text-[#2B3A2D]/80 font-medium mt-2 md:mt-3 block">
               {config.subtitle}
             </span>
           </div>
 
           {/* Horizontal Rule */}
-          <div ref={ruleRef} className="h-px w-full bg-foreground/15 mt-6 sm:mt-8 mb-10 sm:mb-14 lg:mb-16" />
+          <div ref={ruleRef} className="h-px w-full bg-foreground/15 mt-5 mb-7 sm:mt-8 sm:mb-12 md:mt-10 md:mb-16 lg:mb-20" />
 
           {/* ========================================================= */}
           {/* 2. TWO-COLUMN EDITORIAL TYPOGRAPHIC SPREAD                */}
           {/* ========================================================= */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 sm:gap-14 lg:gap-20 xl:gap-28 items-start">
+          <div className="grid grid-cols-1 md:grid-cols-[1.18fr_0.82fr] gap-8 sm:gap-10 md:gap-12 lg:gap-16 xl:gap-20 items-start">
             
             {/* ------------------------------------------------------- */}
             {/* CỘT 1: TIỆC MỪNG CHÍNH (TÂM ĐIỂM CHO 90% KHÁCH MỜI)      */}
             {/* ------------------------------------------------------- */}
             <div ref={col1Ref} className="flex flex-col text-left">
-              <span className="text-xs font-sans uppercase tracking-[0.24em] text-primary font-medium block mb-3">
+              <span className="text-xs font-sans uppercase tracking-[0.24em] text-primary/90 font-semibold block mb-3 md:mb-4">
                 {config.banquet.badge}
               </span>
 
@@ -372,108 +392,108 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
                   {config.banquet.time}
                 </span>
                 
-                <span className="font-display text-xl sm:text-2xl lg:text-3xl font-medium text-foreground tracking-wide mt-3 sm:mt-4 block">
+                <span className="font-display text-xl sm:text-2xl lg:text-3xl font-medium text-foreground tracking-wide mt-3 sm:mt-4 md:mt-5 block">
                   {config.banquet.date}
                 </span>
 
-                <span className="text-xs sm:text-sm font-sans text-foreground/55 italic mt-1 block">
+                <span className="text-xs sm:text-sm font-sans text-[#2B3A2D]/80 italic mt-1.5 block">
                   ({config.banquet.lunarDate})
                 </span>
               </div>
 
               {/* Venue Divider */}
-              <div className="h-px w-14 bg-foreground/15 my-5 sm:my-6" />
+              <div className="h-px w-14 bg-foreground/15 my-5 md:my-7 lg:my-8" />
 
               {/* Venue Info */}
               <div>
-                <h3 className="font-display text-xl sm:text-2xl lg:text-3xl font-semibold text-foreground leading-snug">
+                <h3 className="font-display text-xl sm:text-[22px] lg:text-[26px] font-semibold text-foreground leading-snug text-balance">
                   {config.banquet.venueName}
                 </h3>
-                <p className="mt-2 text-sm sm:text-base font-sans text-foreground/80 leading-relaxed max-w-md">
+                <p className="mt-2 md:mt-3 text-sm sm:text-base font-sans text-foreground/80 leading-relaxed max-w-lg">
                   {config.banquet.venueAddress}
                 </p>
               </div>
 
               {/* Action Button */}
-              <div className="mt-6 sm:mt-8 flex flex-wrap items-center gap-4">
+              <div className="mt-6 md:mt-8 lg:mt-10 flex items-center">
                 <button
                   type="button"
-                  onClick={() =>
-                    setActiveMap({
-                      title: config.banquet.venueName,
-                      query: config.banquet.mapsQuery,
-                      url: config.banquet.mapsUrl,
-                    })
-                  }
+                  onClick={openBanquetMap}
                   className="cursor-pointer group inline-flex items-center gap-2 border border-foreground/35 bg-foreground/[0.04] px-5 sm:px-6 py-2.5 sm:py-3 text-xs uppercase tracking-[0.2em] text-foreground transition-all duration-300 hover:border-primary hover:bg-primary hover:text-white rounded-xs shadow-xs"
                 >
                   <span className="font-medium">Xem bản đồ chỉ đường</span>
                   <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
                 </button>
-                <a
-                  href={config.banquet.mapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[11px] uppercase tracking-[0.16em] text-foreground/50 hover:text-primary transition-colors underline underline-offset-4"
-                >
-                  Mở Google Maps ↗
-                </a>
               </div>
             </div>
 
             {/* ------------------------------------------------------- */}
-            {/* CỘT 2: LỄ TỔ CHỨC TẠI TƯ GIA (DÀNH CHO HỌ HÀNG, NGƯỜI THÂN) */}
+            {/* CỘT 2: LỄ TỔ CHỨC TẠI TƯ GIA (MOBILE: 1 GHI CHÚ GỌN)    */}
             {/* ------------------------------------------------------- */}
-            <div ref={col2Ref} className="flex flex-col text-left md:border-l md:border-foreground/15 md:pl-10 lg:pl-16 xl:pl-20">
-              <span className="text-xs font-sans uppercase tracking-[0.24em] text-foreground/50 font-medium block mb-3">
-                {config.ceremony.badge}
-              </span>
-
-              {/* Time & Date Display */}
-              <div>
-                <span className="font-display text-4xl sm:text-5xl lg:text-6xl font-medium tracking-tight text-foreground/80 block leading-none">
-                  {config.ceremony.time}
-                </span>
-
-                <span className="font-display text-lg sm:text-xl lg:text-2xl font-medium text-foreground/75 tracking-wide mt-3 sm:mt-4 block">
-                  {config.ceremony.date}
-                </span>
-
-                <span className="text-xs sm:text-sm font-sans text-foreground/50 italic mt-1 block">
-                  {config.ceremony.note}
-                </span>
-              </div>
-
-              {/* Venue Divider */}
-              <div className="h-px w-14 bg-foreground/15 my-5 sm:my-6" />
-
-              {/* Venue Info */}
-              <div>
-                <h3 className="font-display text-lg sm:text-xl lg:text-2xl font-medium text-foreground/90 leading-snug">
-                  {config.ceremony.venueName}
-                </h3>
-                <p className="mt-2 text-sm sm:text-base font-sans text-foreground/70 leading-relaxed max-w-md">
-                  {config.ceremony.venueAddress}
+            <div
+              ref={col2Ref}
+              className="flex flex-col text-left border-t border-foreground/15 pt-5 md:border-t-0 md:pt-0 md:border-l md:pl-10 lg:pl-14 xl:pl-16"
+            >
+              {/* Mobile compact footnote */}
+              <div className="md:hidden text-xs font-sans text-[#2B3A2D]/85 leading-relaxed">
+                <p>
+                  {config.ceremony.mobileNote}{" "}
+                  <button
+                    type="button"
+                    onClick={openCeremonyMap}
+                    className="cursor-pointer inline font-medium text-primary underline decoration-primary/45 underline-offset-4 hover:decoration-primary"
+                  >
+                    {config.ceremony.mobileLocation} ↗
+                  </button>
                 </p>
               </div>
 
-              {/* Secondary Map Link */}
-              <div className="mt-6 sm:mt-8 flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveMap({
-                      title: config.ceremony.venueName,
-                      query: config.ceremony.mapsQuery,
-                      url: config.ceremony.mapsUrl,
-                    })
-                  }
-                  className="cursor-pointer group inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] text-primary font-medium py-1"
-                >
-                  <span className="border-b border-primary/60 pb-0.5 transition-colors group-hover:border-primary">
-                    [ Chỉ đường tư gia ↗ ]
+              {/* Desktop full secondary column */}
+              <div className="hidden md:flex md:flex-col">
+                <span className="text-xs font-sans uppercase tracking-[0.24em] text-[#2B3A2D]/80 font-semibold block mb-4">
+                  {config.ceremony.badge}
+                </span>
+
+                {/* Time & Date Display */}
+                <div>
+                  <span className="font-display text-4xl sm:text-5xl lg:text-6xl font-medium tracking-tight text-foreground/85 block leading-none">
+                    {config.ceremony.time}
                   </span>
-                </button>
+
+                  <span className="font-display text-lg sm:text-xl lg:text-2xl font-medium text-foreground/80 tracking-wide mt-4 sm:mt-5 block">
+                    {config.ceremony.date}
+                  </span>
+
+                  <span className="text-xs sm:text-sm font-sans text-[#2B3A2D]/80 italic mt-1.5 block">
+                    {config.ceremony.note}
+                  </span>
+                </div>
+
+                {/* Venue Divider */}
+                <div className="h-px w-14 bg-foreground/15 my-7 sm:my-8" />
+
+                {/* Venue Info */}
+                <div>
+                  <h3 className="font-display text-lg sm:text-xl lg:text-2xl font-medium text-foreground/90 leading-snug text-balance">
+                    {config.ceremony.venueName}
+                  </h3>
+                  <p className="mt-2.5 sm:mt-3 text-sm sm:text-base font-sans text-foreground/75 leading-relaxed max-w-md">
+                    {config.ceremony.venueAddress}
+                  </p>
+                </div>
+
+                {/* Secondary Map Link */}
+                <div className="mt-8 sm:mt-10 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={openCeremonyMap}
+                    className="cursor-pointer group inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] text-primary font-medium py-1"
+                  >
+                    <span className="border-b border-primary/60 pb-0.5 transition-colors group-hover:border-primary">
+                      [ Chỉ đường tư gia ↗ ]
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
 

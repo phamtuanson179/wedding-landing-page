@@ -16,7 +16,7 @@ type AnyGalleryItem = {
   alt: string;
   caption?: string;
   badge?: string;
-  aspect?: "3/4" | "3/2" | "1/1" | "16/9" | "4/5";
+  aspect?: "2/3" | "3/4" | "3/2" | "1/1" | "16/9" | "4/5";
 };
 
 interface LightboxModalProps {
@@ -261,7 +261,7 @@ export function GallerySection({
     ...(m3Highlight ? [m3Highlight] : []),
   ];
 
-  // Prepare combined flat list for lightbox navigation (39 digital + 25 film = 64 items)
+  // Prepare combined flat list for lightbox navigation (39 digital + 32 film = 71 items)
   const allItems: AnyGalleryItem[] = [
     ...digitalPhotos.map((p) => ({
       id: p.id,
@@ -277,7 +277,7 @@ export function GallerySection({
       alt: f.alt,
       caption: f.caption,
       badge: `35MM · ${f.frameCode}`,
-      aspect: "3/2" as const,
+      aspect: f.aspect ?? ("2/3" as const),
     })),
   ];
 
@@ -550,7 +550,7 @@ export function GallerySection({
         </div>
 
         {/* ========================================================================= */}
-        {/* PART II: THE 35MM FILM ARCHIVE (25 FILM PHOTOS) - VISUAL SHIFT            */}
+        {/* PART II: THE 35MM FILM ARCHIVE (32 FILM PHOTOS) - VISUAL SHIFT            */}
         {/* ========================================================================= */}
         <div
           ref={filmSectionRef}
@@ -570,11 +570,11 @@ export function GallerySection({
             </p>
           </div>
 
-          {/* 35mm Contact Sheet / Proof Sheet Grid (25 frames) */}
+          {/* 35mm Contact Sheet / Proof Sheet Grid (32 frames) */}
           <div className="mx-auto max-w-6xl">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5 md:gap-4.5">
               {filmPhotos.map((film, index) => {
-                const globalIdx = 39 + index;
+                const globalIdx = digitalPhotos.length + index;
                 return (
                   <div
                     key={film.id}
@@ -587,15 +587,15 @@ export function GallerySection({
                       <span>· {film.frameCode} ·</span>
                     </div>
 
-                    {/* Film Photo Frame: 3:2 landscape ratio */}
-                    <div className="relative w-full aspect-[3/2] overflow-hidden bg-black/80">
+                    {/* Film Photo Frame: exact 1082:1600 scan ratio + object-contain so scanner white borders never clip */}
+                    <div className="relative w-full aspect-[1082/1600] overflow-hidden bg-black">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={film.src}
                         alt={film.alt}
                         loading="lazy"
                         decoding="async"
-                        className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                        className="h-full w-full object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]"
                       />
                       <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/15" />
                     </div>
@@ -614,7 +614,7 @@ export function GallerySection({
           {/* Finale Footer */}
           <footer className="mt-20 sm:mt-24 text-center">
             <span className="text-[10px] tracking-[0.3em] uppercase text-white/40 font-mono block mb-1.5">
-              TOTAL 64 FRAMES · FIN
+              TOTAL {allItems.length} FRAMES · FIN
             </span>
             <p className="font-display italic text-sm sm:text-base text-white/70">
               Sơn &amp; Linh — Hà Nội, 2026

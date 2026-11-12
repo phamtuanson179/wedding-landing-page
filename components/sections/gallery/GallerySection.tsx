@@ -239,6 +239,14 @@ export function GallerySection({
   }, []);
 
   // 3 Lighting Milestones for Digital Editorial
+  const ASPECT_CLASS_MAP: Record<string, string> = {
+    "3/2": "aspect-[3/2]",
+    "3/4": "aspect-[3/4]",
+    "1/1": "aspect-square",
+    "16/9": "aspect-video",
+    "4/5": "aspect-[4/5]",
+  };
+
   // Chapter 1: Bóng râm & Khởi đầu (12 in grid + 1 closing highlight = 13 photos)
   const m1Grid = photos.slice(0, 12);
   const m1Highlight = photos[12];
@@ -248,9 +256,8 @@ export function GallerySection({
   const m2Highlight = photos[25];
 
   // Chapter 3: Nắng cuối chiều vàng / Hoàng hôn (12 in grid + 1 closing highlight = 13 photos)
-  const m3Grid =
-    photos.length >= 56 ? photos.slice(43, 55) : photos.slice(26, 38);
-  const m3Highlight = photos.length >= 56 ? photos[55] : photos[38];
+  const m3Grid = photos.slice(26, 38);
+  const m3Highlight = photos[38];
 
   const digitalPhotos = [
     ...m1Grid,
@@ -380,7 +387,7 @@ export function GallerySection({
               <div className="mx-auto max-w-3xl md:max-w-4xl px-4 sm:px-6 mt-4 sm:mt-6">
                 <div
                   onClick={() => openLightbox(12)}
-                  className="group relative w-full aspect-[3/4] cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_10px_30px_rgba(44,39,37,0.06)]"
+                  className={`group relative w-full ${ASPECT_CLASS_MAP[m1Highlight.aspect ?? "3/4"] ?? "aspect-[3/4]"} cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_10px_30px_rgba(44,39,37,0.06)]`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -449,7 +456,7 @@ export function GallerySection({
               <div className="mx-auto max-w-3xl md:max-w-4xl px-4 sm:px-6 mt-4 sm:mt-6">
                 <div
                   onClick={() => openLightbox(25)}
-                  className="group relative w-full aspect-[3/4] cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_10px_30px_rgba(44,39,37,0.06)]"
+                  className={`group relative w-full ${ASPECT_CLASS_MAP[m2Highlight.aspect ?? "3/4"] ?? "aspect-[3/4]"} cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_10px_30px_rgba(44,39,37,0.06)]`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -518,7 +525,7 @@ export function GallerySection({
               <div className="mx-auto max-w-3xl md:max-w-4xl px-4 sm:px-6 mt-4 sm:mt-6">
                 <div
                   onClick={() => openLightbox(38)}
-                  className="group relative w-full aspect-[3/4] cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_12px_36px_rgba(44,39,37,0.07)]"
+                  className={`group relative w-full ${ASPECT_CLASS_MAP[m3Highlight.aspect ?? "3/4"] ?? "aspect-[3/4]"} cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_12px_36px_rgba(44,39,37,0.07)]`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img

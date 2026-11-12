@@ -8,7 +8,7 @@ export type FilmPhoto = {
 };
 
 const SELECTED_FILM_FRAMES = [
-  2, 4, 7, 8, 11, 12, 19, 20, 21, 22, 25, 26, 28, 29, 31, 32,
+  3, 5, 6, 11, 12, 14, 19, 20, 21, 22, 25, 26, 28, 29, 31, 32,
 ] as const;
 
 export const FILM_PHOTOS: FilmPhoto[] = SELECTED_FILM_FRAMES.map(

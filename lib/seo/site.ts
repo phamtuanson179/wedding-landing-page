@@ -5,13 +5,13 @@
 export const siteConfig = {
   name: "Sơn & Linh",
   shortName: "S & L",
-  title: "Thiệp cưới Sơn & Linh | 29.11.2026",
+  title: "Thiệp cưới Sơn & Linh",
   titleTemplate: "%s | Sơn & Linh",
   description:
-    "Trân trọng kính mời bạn đến dự lễ cưới của Phạm Tuấn Sơn & Nguyễn Thị Thùy Linh — ngày 29.11.2026 tại Gia Lâm, Hà Nội. Xem câu chuyện, album ảnh và thông tin buổi lễ.",
+    "Trân trọng kính mời bạn đến dự lễ cưới của Phạm Tuấn Sơn & Nguyễn Thị Thùy Linh tại Hà Nội. Xem câu chuyện, album ảnh và thông tin buổi lễ.",
   /** Shorter blurb for chat previews (Messenger / Telegram / LinkedIn). */
   shareDescription:
-    "Trân trọng kính mời bạn đến dự lễ cưới Sơn & Linh — 29.11.2026 · Gia Lâm, Hà Nội.",
+    "Trân trọng kính mời bạn đến dự lễ cưới của Phạm Tuấn Sơn & Nguyễn Thị Thùy Linh tại Hà Nội.",
   locale: "vi_VN",
   language: "vi",
   keywords: [
@@ -67,7 +67,7 @@ export const siteConfig = {
     width: 1200,
     height: 630,
     type: "image/png",
-    alt: "Sơn & Linh — Thiệp cưới 29.11.2026",
+    alt: "Sơn & Linh — Thiệp cưới",
   },
 } as const;
 

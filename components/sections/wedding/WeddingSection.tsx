@@ -360,15 +360,15 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
         ref={sectionRef}
         className="relative overflow-x-clip bg-background text-[#2B3A2D] pt-16 pb-14 sm:pt-20 sm:pb-16 md:flex md:min-h-dvh md:flex-col md:justify-center md:pt-24 md:pb-[calc(var(--section-nav-height,0px)+5rem)]"
       >
-        <div className="relative z-10 mx-auto w-full max-w-5xl px-5 sm:px-8 md:px-12">
-          <div ref={eyebrowRef} className="mb-7 text-center md:mb-12">
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-5 sm:px-8 md:px-12">
+          <div ref={eyebrowRef} className="mb-7 text-center md:mb-10">
             <h2 className="sr-only">Thiệp Mời &amp; Chương Trình Hôn Lễ</h2>
-            <p className="font-sans text-[0.6875rem] font-medium uppercase tracking-[0.28em] text-primary">
+            <p className="font-sans text-xs sm:text-[0.8125rem] font-medium uppercase tracking-[0.28em] text-primary">
               03 / TIMELINE &amp; LOCATION
             </p>
           </div>
 
-          <div className="mx-auto grid max-w-md grid-cols-1 items-center gap-8 md:max-w-none md:grid-cols-[1fr_1px_1fr] md:gap-10 lg:gap-14">
+          <div className="mx-auto grid max-w-lg grid-cols-1 items-center gap-8 md:max-w-none md:grid-cols-[1fr_1px_1fr] md:gap-10 lg:gap-14">
             {/* ========================================================= */}
             {/* PHẦN 1: SONG THÂN, MONOGRAM OVAL & LỜI MỜI               */}
             {/* ========================================================= */}
@@ -377,13 +377,13 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
               <div className="grid w-full grid-cols-2 gap-3 sm:gap-6">
                 {families.map((family) => (
                   <div key={family.title} className="min-w-0">
-                    <p className="font-sans text-[0.6875rem] sm:text-xs font-semibold uppercase tracking-[0.18em] text-[#2B3A2D]">
+                    <p className="font-sans text-xs sm:text-[0.8125rem] font-semibold uppercase tracking-[0.18em] text-[#2B3A2D]">
                       {family.title}
                     </p>
-                    <div className="mt-1.5 space-y-0.5 font-display text-[0.75rem] sm:text-sm leading-[1.45] text-[#2B3A2D]/90">
+                    <div className="mt-1.5 space-y-0.5 font-display text-[0.8125rem] sm:text-base leading-[1.45] text-[#2B3A2D]/90">
                       <p>{family.father}</p>
                       <p>{family.mother}</p>
-                      <p className="pt-0.5 font-sans text-[0.6875rem] sm:text-xs text-[#2B3A2D]/75">
+                      <p className="pt-0.5 font-sans text-xs sm:text-[0.8125rem] text-[#2B3A2D]/75">
                         {FAMILY_SHORT_ADDRESS[family.title] ?? family.address}
                       </p>
                     </div>
@@ -414,26 +414,26 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
 
               {/* Lời mời */}
               <div className="space-y-1">
-                <p className="font-display italic text-sm sm:text-base leading-[1.5] text-[#2B3A2D]/85">
+                <p className="font-display italic text-base sm:text-lg leading-[1.5] text-[#2B3A2D]/85">
                   Trân trọng kính mời
                 </p>
-                <p className="font-display text-base sm:text-lg font-semibold uppercase tracking-[0.22em] leading-[1.4] text-[#2B3A2D]">
+                <p className="font-display text-lg sm:text-xl font-semibold uppercase tracking-[0.22em] leading-[1.4] text-[#2B3A2D]">
                   Quý khách
                 </p>
-                <p className="font-display italic text-sm sm:text-base leading-[1.5] text-[#2B3A2D]/85">
+                <p className="font-display italic text-base sm:text-lg leading-[1.5] text-[#2B3A2D]/85">
                   Đến dự bữa tiệc chung vui cùng
                 </p>
               </div>
 
               {/* Tên cô dâu chú rể */}
               <div className="mt-5 sm:mt-6 flex flex-col items-center gap-1">
-                <p className="font-display text-[clamp(1.375rem,1.05rem+1.5vw,1.875rem)] font-medium uppercase tracking-[0.15em] leading-[1.2] text-[#2B3A2D] text-balance">
+                <p className="font-display text-[clamp(1.625rem,1.25rem+1.6vw,2.25rem)] font-medium uppercase tracking-[0.15em] leading-[1.2] text-[#2B3A2D] text-balance">
                   {config.coupleOrder[0]}
                 </p>
-                <span className="my-0.5 font-display italic text-base sm:text-lg leading-none text-primary">
+                <span className="my-0.5 font-display italic text-lg sm:text-xl leading-none text-primary">
                   &amp;
                 </span>
-                <p className="font-display text-[clamp(1.375rem,1.05rem+1.5vw,1.875rem)] font-medium uppercase tracking-[0.15em] leading-[1.2] text-[#2B3A2D] text-balance">
+                <p className="font-display text-[clamp(1.625rem,1.25rem+1.6vw,2.25rem)] font-medium uppercase tracking-[0.15em] leading-[1.2] text-[#2B3A2D] text-balance">
                   {config.coupleOrder[1]}
                 </p>
               </div>
@@ -450,42 +450,42 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
             {/* PHẦN 2: TIỆC MỪNG, CỤM NGÀY XẾP DỌC & ĐỊA ĐIỂM            */}
             {/* ========================================================= */}
             <div ref={eventColRef} className="flex flex-col items-center text-center">
-              <p className="font-sans text-xs sm:text-[0.8125rem] font-semibold uppercase tracking-[0.28em] text-primary">
+              <p className="font-sans text-[0.8125rem] sm:text-sm font-semibold uppercase tracking-[0.28em] text-primary">
                 {config.banquet.title}
               </p>
 
               {/* Vertical Date Block */}
               <div className="my-5 sm:my-6 grid w-full grid-cols-[1fr_auto_1fr] items-center">
                 <div className="min-w-0 pr-4 sm:pr-6 text-right">
-                  <span className="font-display text-base sm:text-lg font-medium tracking-[0.12em] text-[#2B3A2D] tabular-nums">
+                  <span className="font-display text-lg sm:text-xl font-medium tracking-[0.12em] text-[#2B3A2D] tabular-nums">
                     {config.banquet.time}
                   </span>
                 </div>
 
-                <div className="flex flex-col items-center border-x border-primary/80 px-5 sm:px-7 py-0.5 font-display text-[clamp(1.75rem,1.4rem+1.2vw,2.25rem)] font-medium leading-[1.1] text-[#2B3A2D] tabular-nums">
+                <div className="flex flex-col items-center border-x border-primary/80 px-5 sm:px-7 py-0.5 font-display text-[clamp(2.125rem,1.65rem+1.4vw,2.75rem)] font-medium leading-[1.1] text-[#2B3A2D] tabular-nums">
                   <span>{config.banquet.day}</span>
                   <span>{config.banquet.month}</span>
                   <span>{config.banquet.year}</span>
                 </div>
 
                 <div className="min-w-0 pl-4 sm:pl-6 text-left">
-                  <span className="font-display text-sm sm:text-base font-medium uppercase tracking-[0.14em] text-[#2B3A2D]">
+                  <span className="font-display text-base sm:text-lg font-medium uppercase tracking-[0.14em] text-[#2B3A2D]">
                     {config.banquet.weekday}
                   </span>
                 </div>
               </div>
 
               {/* Ngày âm lịch */}
-              <p className="font-display italic text-xs sm:text-sm leading-[1.5] text-[#2B3A2D]/80">
+              <p className="font-display italic text-sm sm:text-base leading-[1.5] text-[#2B3A2D]/80">
                 ({config.banquet.lunarDate})
               </p>
 
               {/* Địa điểm tổ chức */}
               <div className="mt-5 sm:mt-6 max-w-md space-y-1.5">
-                <h3 className="font-display text-[clamp(1.0625rem,0.95rem+0.5vw,1.25rem)] font-semibold uppercase tracking-[0.06em] leading-[1.35] text-[#2B3A2D] whitespace-pre-line text-balance">
+                <h3 className="font-display text-[clamp(1.1875rem,1.05rem+0.6vw,1.45rem)] font-semibold uppercase tracking-[0.06em] leading-[1.35] text-[#2B3A2D] whitespace-pre-line text-balance">
                   {config.banquet.venueName}
                 </h3>
-                <p className="font-sans text-xs sm:text-sm leading-[1.5] text-[#2B3A2D]/80 text-pretty">
+                <p className="font-sans text-[0.8125rem] sm:text-[0.9375rem] leading-[1.5] text-[#2B3A2D]/80 text-pretty">
                   {config.banquet.venueAddress}
                 </p>
               </div>
@@ -501,7 +501,7 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
                       url: config.banquet.mapsUrl,
                     })
                   }
-                  className="cursor-pointer group inline-flex items-center justify-center px-3 py-2 font-sans text-xs font-semibold uppercase tracking-[0.2em] text-primary transition-opacity hover:opacity-80"
+                  className="cursor-pointer group inline-flex items-center justify-center px-3 py-2 font-sans text-xs sm:text-[0.8125rem] font-semibold uppercase tracking-[0.2em] text-primary transition-opacity hover:opacity-80"
                 >
                   <span className="border-b border-primary/70 pb-1 transition-colors group-hover:border-primary">
                     Xem bản đồ chỉ đường ↗
@@ -511,7 +511,7 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
 
               {/* Ghi chú Lễ Thành Hôn / Vu Quy tại Tư Gia */}
               <div className="mt-5 w-full max-w-md border-t border-[#2B3A2D]/15 pt-4">
-                <p className="font-sans text-xs leading-[1.6] text-[#2B3A2D]/80 text-pretty">
+                <p className="font-sans text-[0.8125rem] sm:text-sm leading-[1.6] text-[#2B3A2D]/80 text-pretty">
                   * {config.ceremony.inlineNote}{" "}
                   <button
                     type="button"

@@ -13,6 +13,7 @@ export interface BankInfo {
   bank: string;
   bankId: string;
   accountNo: string;
+  qrImage?: string;
   zaloPhone: string;
 }
 
@@ -102,6 +103,28 @@ export interface WeddingSideData {
   secondaryBank: BankInfo;
 }
 
+const BRIDE_BANK: BankInfo = {
+  key: "bride",
+  label: "Mừng cưới cô dâu",
+  holder: "NGUYEN THI THUY LINH",
+  bank: "Vietcombank - PGD Phương Mai",
+  bankId: "970436",
+  accountNo: "0711000294849",
+  qrImage: "/images/qr/bride-qr.png",
+  zaloPhone: "0987654321", // TODO: Update constant sau
+};
+
+const GROOM_BANK: BankInfo = {
+  key: "groom",
+  label: "Mừng cưới chú rể",
+  holder: "PHAM TUAN SON",
+  bank: "VietinBank - CN Hai Bà Trưng - Hội Sở",
+  bankId: "970415",
+  accountNo: "104868957919",
+  qrImage: "/images/qr/groom-qr.png",
+  zaloPhone: "0123456789", // TODO: Update constant sau
+};
+
 export const WEDDING_DATA: Record<WeddingRole, WeddingSideData> = {
   // ===================== DÀNH CHO KHÁCH NHÀ GÁI =====================
   hers: {
@@ -128,24 +151,8 @@ export const WEDDING_DATA: Record<WeddingRole, WeddingSideData> = {
     announcementTitle: "TRÂN TRỌNG BÁO TIN LỄ VU QUY CỦA CON CHÚNG TÔI",
     venue: VENUES.hers,
     otherVenue: VENUES.his,
-    bank: {
-      key: "bride",
-      label: "Mừng cưới cô dâu",
-      holder: "NGUYEN THI THUY LINH",
-      bank: "Techcombank",
-      bankId: "970407",
-      accountNo: "0987654321", // TODO: Update constant sau
-      zaloPhone: "0987654321", // TODO: Update constant sau
-    },
-    secondaryBank: {
-      key: "groom",
-      label: "Mừng cưới chú rể",
-      holder: "PHAM TUAN SON",
-      bank: "Vietcombank",
-      bankId: "970436",
-      accountNo: "0123456789", // TODO: Update constant sau
-      zaloPhone: "0123456789", // TODO: Update constant sau
-    },
+    bank: BRIDE_BANK,
+    secondaryBank: GROOM_BANK,
   },
 
   // ===================== DÀNH CHO KHÁCH NHÀ TRAI =====================
@@ -173,24 +180,8 @@ export const WEDDING_DATA: Record<WeddingRole, WeddingSideData> = {
     announcementTitle: "TRÂN TRỌNG BÁO TIN LỄ THÀNH HÔN CỦA CON CHÚNG TÔI",
     venue: VENUES.his,
     otherVenue: VENUES.hers,
-    bank: {
-      key: "groom",
-      label: "Mừng cưới chú rể",
-      holder: "PHAM TUAN SON",
-      bank: "Vietcombank",
-      bankId: "970436",
-      accountNo: "0123456789", // TODO: Update constant sau
-      zaloPhone: "0123456789", // TODO: Update constant sau
-    },
-    secondaryBank: {
-      key: "bride",
-      label: "Mừng cưới cô dâu",
-      holder: "NGUYEN THI THUY LINH",
-      bank: "Techcombank",
-      bankId: "970407",
-      accountNo: "0987654321", // TODO: Update constant sau
-      zaloPhone: "0987654321", // TODO: Update constant sau
-    },
+    bank: GROOM_BANK,
+    secondaryBank: BRIDE_BANK,
   },
 };
 

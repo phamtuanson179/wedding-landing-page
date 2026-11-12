@@ -1,6 +1,7 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { getScroller, setFinaleChrome } from "@/lib/scroll/cornerNav";
@@ -14,7 +15,10 @@ gsap.registerPlugin(ScrollTrigger);
 
 const CONTENT_INSET = "px-6 md:px-14 lg:px-20 xl:px-24";
 
-function getVietQrUrl(account: BankInfo) {
+function getQrImageSrc(account: BankInfo) {
+  if (account.qrImage) {
+    return account.qrImage;
+  }
   const accountName = encodeURIComponent(account.holder);
   return `https://img.vietqr.io/image/${account.bankId}-${account.accountNo}-compact2.jpg?accountName=${accountName}`;
 }
@@ -38,7 +42,7 @@ function QrPanel({ account }: { account: BankInfo }) {
         <div className="overflow-hidden rounded-lg border border-background/25 bg-white p-2 md:rounded-xl md:p-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={getVietQrUrl(account)}
+            src={getQrImageSrc(account)}
             alt={`Mã QR mừng cưới ${account.holder}`}
             className="aspect-square w-full rounded-lg object-contain"
             loading="lazy"
@@ -91,6 +95,148 @@ function QrPanel({ account }: { account: BankInfo }) {
   );
 }
 
+function GiftQrModal({
+  open,
+  account,
+  onClose,
+}: {
+  open: boolean;
+  account: BankInfo;
+  onClose: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLButtonElement>(null);
+
+  const handleClose = useCallback(() => {
+    const panel = panelRef.current;
+    const backdrop = backdropRef.current;
+    if (!panel || !backdrop) {
+      onClose();
+      return;
+    }
+
+    gsap
+      .timeline({ onComplete: onClose })
+      .to(panel, {
+        autoAlpha: 0,
+        y: 16,
+        scale: 0.98,
+        duration: 0.22,
+        ease: "power2.in",
+      })
+      .to(
+        backdrop,
+        { autoAlpha: 0, duration: 0.18, ease: "power2.in" },
+        "-=0.1",
+      );
+  }, [onClose]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    const panel = panelRef.current;
+    const backdrop = backdropRef.current;
+    if (!panel || !backdrop) return;
+
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    gsap.set(backdrop, { autoAlpha: 0 });
+    gsap.set(panel, { autoAlpha: 0, y: 20, scale: 0.98 });
+
+    const tween = gsap.timeline();
+    tween.to(backdrop, {
+      autoAlpha: 1,
+      duration: prefersReducedMotion ? 0.15 : 0.3,
+      ease: "power2.out",
+    });
+    tween.to(
+      panel,
+      {
+        autoAlpha: 1,
+        y: 0,
+        scale: 1,
+        duration: prefersReducedMotion ? 0.2 : 0.45,
+        ease: "power3.out",
+      },
+      "-=0.1",
+    );
+
+    return () => {
+      tween.kill();
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        handleClose();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, handleClose]);
+
+  if (!open || typeof document === "undefined") {
+    return null;
+  }
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4 md:p-8"
+      role="dialog"
+      aria-modal="true"
+      aria-label={account.label}
+    >
+      <button
+        ref={backdropRef}
+        type="button"
+        aria-label="Đóng hộp mừng cưới"
+        onClick={handleClose}
+        className="absolute inset-0 cursor-pointer bg-black/75 backdrop-blur-sm"
+      />
+
+      <div
+        ref={panelRef}
+        className="relative z-10 max-h-[88dvh] w-full max-w-xl overflow-y-auto rounded-xl border border-[#d4b87a]/35 bg-primary text-background shadow-2xl"
+      >
+        <div className="flex items-center justify-between border-b border-background/15 px-5 py-3.5 md:px-7 md:py-4">
+          <div className="min-w-0 pr-4">
+            <p className="text-[9px] uppercase tracking-[0.28em] text-[#d4b87a]">
+              Wedding Gift
+            </p>
+            <p className="mt-0.5 truncate font-display text-base text-background md:text-lg">
+              {account.label}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleClose}
+            className="cursor-pointer whitespace-nowrap border border-background/30 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-background/85 transition-colors hover:border-[#d4b87a] hover:text-background"
+          >
+            Đóng
+          </button>
+        </div>
+
+        <div className="px-5 py-2 md:px-7 md:py-1">
+          <QrPanel account={account} />
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function ThankYouSection({ role = "his" }: { role?: WeddingRole }) {
   const weddingData = getWeddingData(role);
   const sectionRef = useRef<HTMLElement>(null);
@@ -98,6 +244,8 @@ export function ThankYouSection({ role = "his" }: { role?: WeddingRole }) {
   const titleRef = useRef<HTMLHeadingElement>(null);
   const messageRef = useRef<HTMLParagraphElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  const [isQrOpen, setIsQrOpen] = useState(false);
 
   const account = weddingData.bank;
 
@@ -187,45 +335,65 @@ export function ThankYouSection({ role = "his" }: { role?: WeddingRole }) {
   }, []);
 
   return (
-    <section
-      id="section-6"
-      ref={sectionRef}
-      className="relative min-h-dvh overflow-x-hidden overflow-y-auto bg-primary text-background md:h-dvh md:overflow-hidden"
-    >
-      <div
-        className="pointer-events-none absolute inset-0 bg-linear-to-b from-transparent to-black/20"
-        aria-hidden
-      />
-
-      <div
-        ref={stageRef}
-        className={`relative z-10 mx-auto flex min-h-dvh w-full max-w-7xl flex-col items-center justify-center pt-6 pb-[calc(1.5rem+var(--section-nav-height,0px))] text-center md:h-full md:pt-8 md:pb-[calc(2.5rem+var(--section-nav-height,0px))] ${CONTENT_INSET}`}
+    <>
+      <section
+        id="section-6"
+        ref={sectionRef}
+        className="relative min-h-dvh overflow-x-hidden overflow-y-auto bg-primary text-background md:h-dvh md:overflow-hidden"
       >
-        <div className="w-full max-w-3xl shrink-0">
-          <header className="w-full">
-            <p className="text-[9px] uppercase tracking-[0.32em] text-[#d4b87a] md:text-xs md:tracking-[0.36em]">
-              Thank You
-            </p>
-            <h2
-              ref={titleRef}
-              className="mt-2 font-display text-[clamp(1.75rem,7.5vw,4rem)] leading-tight text-background md:mt-4"
-            >
-              Trân trọng cảm ơn
-            </h2>
-            <p
-              ref={messageRef}
-              className="mt-3 text-xs leading-relaxed font-light text-background/78 md:mt-5 md:text-base md:leading-7"
-            >
-              Sự có mặt của quý khách là niềm hạnh phúc nhất của gia đình chúng mình. Chúng mình rất mong được đón bạn đến chung vui và gửi
-              lời chúc phúc trong ngày trọng đại này.
-            </p>
-          </header>
+        <div
+          className="pointer-events-none absolute inset-0 bg-linear-to-b from-transparent to-black/20"
+          aria-hidden
+        />
 
-          <div ref={panelRef} className="mt-4 w-full md:mt-8">
-            <QrPanel account={account} />
+        <div
+          ref={stageRef}
+          className={`relative z-10 mx-auto flex min-h-dvh w-full max-w-7xl flex-col items-center justify-center pt-6 pb-[calc(1.5rem+var(--section-nav-height,0px))] text-center md:h-full md:pt-8 md:pb-[calc(2.5rem+var(--section-nav-height,0px))] ${CONTENT_INSET}`}
+        >
+          <div className="w-full max-w-3xl shrink-0">
+            <header className="w-full">
+              <p className="text-[9px] uppercase tracking-[0.32em] text-[#d4b87a] md:text-xs md:tracking-[0.36em]">
+                Thank You
+              </p>
+              <h2
+                ref={titleRef}
+                className="mt-2 font-display text-[clamp(1.75rem,7.5vw,4rem)] leading-tight text-background md:mt-4"
+              >
+                Trân trọng cảm ơn
+              </h2>
+              <p
+                ref={messageRef}
+                className="mt-3 text-xs leading-relaxed font-light text-background/78 md:mt-5 md:text-base md:leading-7"
+              >
+                Sự có mặt của quý khách là niềm hạnh phúc nhất của gia đình chúng mình. Chúng mình rất mong được đón bạn đến chung vui và gửi
+                lời chúc phúc trong ngày trọng đại này.
+              </p>
+            </header>
+
+            <div ref={panelRef} className="mt-5 w-full md:mt-6">
+              <button
+                type="button"
+                onClick={() => setIsQrOpen(true)}
+                className="cursor-pointer group inline-flex items-center gap-1.5 border border-[#d4b87a] bg-[#d4b87a] px-3.5 py-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-primary transition-colors duration-300 hover:border-[#dfc58d] hover:bg-[#dfc58d] md:px-4 md:py-1.5 md:text-[10px]"
+              >
+                <span>{account.label}</span>
+                <span
+                  aria-hidden="true"
+                  className="transition-transform duration-300 group-hover:translate-x-0.5"
+                >
+                  ↗
+                </span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <GiftQrModal
+        open={isQrOpen}
+        account={account}
+        onClose={() => setIsQrOpen(false)}
+      />
+    </>
   );
 }

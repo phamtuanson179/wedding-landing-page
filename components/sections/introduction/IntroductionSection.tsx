@@ -4,55 +4,73 @@ import Image from "next/image";
 import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { getScroller, isMobileViewport, setCornerNavColor } from "@/lib/scroll/cornerNav";
+import {
+  getScroller,
+  isMobileViewport,
+  setCornerNavColor,
+  type CornerNavMode,
+} from "@/lib/scroll/cornerNav";
+import { scrollToSection } from "@/lib/scroll/sectionNav";
 import { type WeddingRole } from "@/lib/constants/wedding-data";
 
 gsap.registerPlugin(ScrollTrigger);
 
-type Person = {
-  role: string;
+interface IntroProfile {
+  id: "intro-groom" | "intro-bride";
+  indexLabel: string;
+  shortLabel: string;
   fullName: string;
-  nickname: string;
   quote: string;
-  image: string;
-  imagePosition: string;
-  zoom?: number; // 1 = 100%, 1.2 = zoom vào 120%, 0.9 = thu nhỏ 90%
-  offsetX?: number; // % dịch ngang: -5 là sang trái 5%, +5 là sang phải 5%
-  offsetY?: number; // % dịch dọc: -5 là lên trên 5%, +5 là xuống dưới 5%
-  zoomOrigin?: string; // Tùy chọn điểm neo zoom
-};
+  portraitImage: string;
+  portraitPosition: string;
+  detailImage: string;
+  detailAlt: string;
+  detailPosition: string;
+  paperSide: "left" | "right";
+  cornerMode: Extract<CornerNavMode, "split-left-accent" | "split-right-accent">;
+  leaveBackMode: Extract<CornerNavMode, "hero" | "split-left-accent">;
+}
 
-const GROOM: Person = {
-  role: "Chú rể",
-  fullName: "Phạm Tuấn Sơn",
-  nickname: "Sơn",
-  quote:
-    "Mười năm không dài, nhưng đủ để biết bản thân muốn che chở cho một người đến hết đời.",
-  image: "/images/intro/groom.webp",
-  imagePosition: "object-[center_50%]",
-  zoom: 1.5,
-  offsetX: 0, // 👈 Chỉnh sang trái / phải ở đây (ví dụ: -5 là sang trái, 5 là sang phải)
-  offsetY: -5, // 👈 Chỉnh lên / xuống ở đây (ví dụ: -5 là lên trên, 5 là xuống dưới)
-};
-
-const BRIDE: Person = {
-  role: "Cô dâu",
-  fullName: "Nguyễn Thị Thùy Linh",
-  nickname: "Linh",
-  quote:
-    "Cảm ơn vì đã luôn là chỗ dựa bình yên và dịu dàng nhất sau mọi bão giông.",
-  image: "/images/intro/bride.webp",
-  imagePosition: "object-[center_50%]",
-  zoom: 1.5,
-  offsetX: 10, // 👈 Chỉnh sang trái / phải ở đây
-  offsetY: -10, // 👈 Chỉnh lên / xuống ở đây
-};
+const INTRO_PROFILES: readonly IntroProfile[] = [
+  {
+    id: "intro-groom",
+    indexLabel: "THE GROOM · 01",
+    shortLabel: "01. Chú rể",
+    fullName: "Phạm Tuấn Sơn",
+    quote:
+      "Mười năm không dài, nhưng đủ để muốn che chở cho một người đến trọn đời.",
+    portraitImage: "/images/intro/groom.webp",
+    portraitPosition: "object-[center_30%]",
+    detailImage: "/images/intro/groom-detail.webp",
+    detailAlt: "Chú rể Phạm Tuấn Sơn - góc nghiêng",
+    detailPosition: "object-[center_20%]",
+    paperSide: "left",
+    cornerMode: "split-left-accent",
+    leaveBackMode: "hero",
+  },
+  {
+    id: "intro-bride",
+    indexLabel: "THE BRIDE · 02",
+    shortLabel: "02. Cô dâu",
+    fullName: "Nguyễn Thị Thùy Linh",
+    quote:
+      "Cảm ơn vì đã luôn là chỗ dựa bình yên và dịu dàng nhất sau mọi bão giông.",
+    portraitImage: "/images/intro/bride.webp",
+    portraitPosition: "object-[center_34%]",
+    detailImage: "/images/intro/bride-detail.webp",
+    detailAlt: "Cô dâu Nguyễn Thị Thùy Linh - khăn voan và váy cưới",
+    detailPosition: "object-center",
+    paperSide: "right",
+    cornerMode: "split-right-accent",
+    leaveBackMode: "split-left-accent",
+  },
+];
 
 const LEFT_MASK_HIDDEN = "inset(0% 100% 0% 0%)";
 const RIGHT_MASK_HIDDEN = "inset(0% 0% 0% 100%)";
 const MASK_VISIBLE = "inset(0% 0% 0% 0%)";
 
-function subscribeLayout(onStoreChange: () => void) {
+function subscribeEnvironment(onStoreChange: () => void) {
   const motionMq = window.matchMedia("(prefers-reduced-motion: reduce)");
   const widthMq = window.matchMedia("(max-width: 767px)");
   const onChange = () => onStoreChange();
@@ -64,128 +82,161 @@ function subscribeLayout(onStoreChange: () => void) {
   };
 }
 
-/** Desktop / tablet — cinematic split + ivory shutter spine */
-function IntroDesktop({
-  sectionRef,
-  reducedMotion = false,
-  role = "his",
+function getEnvironmentSnapshot(): string {
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const mobile = isMobileViewport();
+  return `${reduced ? "reduced" : "motion"}-${mobile ? "mobile" : "desktop"}`;
+}
+
+function IntroSpread({
+  profile,
+  ceremonyLabel,
+  showCeremonyTopTag,
+  showMobileDivider,
+  reducedMotion,
+  isMobile,
 }: {
-  sectionRef: React.RefObject<HTMLElement | null>;
-  reducedMotion?: boolean;
-  role?: WeddingRole;
+  profile: IntroProfile;
+  ceremonyLabel: string;
+  showCeremonyTopTag?: boolean;
+  showMobileDivider?: boolean;
+  reducedMotion: boolean;
+  isMobile: boolean;
 }) {
-  const leftMaskRef = useRef<HTMLDivElement>(null);
-  const rightMaskRef = useRef<HTMLDivElement>(null);
-  const leftImageRef = useRef<HTMLDivElement>(null);
-  const rightImageRef = useRef<HTMLDivElement>(null);
-  const stripRef = useRef<HTMLDivElement>(null);
+  const spreadRef = useRef<HTMLElement>(null);
+  const maskRef = useRef<HTMLDivElement>(null);
+  const driftRef = useRef<HTMLDivElement>(null);
+  const kenRef = useRef<HTMLDivElement>(null);
+  const paperRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    const section = sectionRef.current;
-    const leftMask = leftMaskRef.current;
-    const rightMask = rightMaskRef.current;
-    const leftImage = leftImageRef.current;
-    const rightImage = rightImageRef.current;
-    const strip = stripRef.current;
+    const spread = spreadRef.current;
+    const mask = maskRef.current;
+    const drift = driftRef.current;
+    const ken = kenRef.current;
+    const paper = paperRef.current;
 
-    if (
-      !section ||
-      !leftMask ||
-      !rightMask ||
-      !leftImage ||
-      !rightImage ||
-      !strip
-    ) {
-      return;
-    }
-
-    const leftKen = leftImage.querySelector<HTMLElement>("[data-intro-kenburns]");
-    const rightKen = rightImage.querySelector<HTMLElement>("[data-intro-kenburns]");
-    const copyBlocks = strip.querySelectorAll<HTMLElement>("[data-intro-copy]");
-
-    if (!leftKen || !rightKen) {
-      return;
-    }
-
-    if (reducedMotion) {
-      gsap.set([leftMask, rightMask], { clipPath: MASK_VISIBLE });
-      gsap.set(strip, { autoAlpha: 1 });
-      gsap.set(copyBlocks, { autoAlpha: 1, y: 0 });
+    if (!spread || !mask || !drift || !ken || !paper) {
       return;
     }
 
     const scroller = getScroller();
-    const tweens: gsap.core.Tween[] = [];
-    const timelines: gsap.core.Timeline[] = [];
 
-    gsap.set(leftMask, { clipPath: LEFT_MASK_HIDDEN });
-    gsap.set(rightMask, { clipPath: RIGHT_MASK_HIDDEN });
-    gsap.set([leftKen, rightKen], { scale: 1 });
-    gsap.set(strip, { autoAlpha: 1 });
-    gsap.set(copyBlocks, { y: 22, autoAlpha: 0 });
+    const chromeTrigger = ScrollTrigger.create({
+      trigger: spread,
+      start: "top 50%",
+      end: "bottom 50%",
+      scroller,
+      invalidateOnRefresh: true,
+      onEnter: () =>
+        setCornerNavColor(isMobile ? "accent" : profile.cornerMode),
+      onEnterBack: () =>
+        setCornerNavColor(isMobile ? "accent" : profile.cornerMode),
+      onLeaveBack: () =>
+        setCornerNavColor(
+          profile.leaveBackMode === "hero"
+            ? "hero"
+            : isMobile
+              ? "accent"
+              : profile.leaveBackMode,
+        ),
+    });
+
+    const detailFrame = paper.querySelector<HTMLElement>("[data-spread-detail]");
+    const copyBlocks = paper.querySelectorAll<HTMLElement>("[data-spread-copy]");
+
+    if (reducedMotion) {
+      gsap.set(mask, { clipPath: MASK_VISIBLE });
+      gsap.set(ken, { scale: 1 });
+      gsap.set(drift, { yPercent: 0 });
+      if (detailFrame) gsap.set(detailFrame, { autoAlpha: 1, y: 0 });
+      gsap.set(copyBlocks, { autoAlpha: 1, y: 0 });
+
+      return () => {
+        chromeTrigger.kill();
+      };
+    }
+
+    const hiddenMask =
+      profile.paperSide === "left" ? RIGHT_MASK_HIDDEN : LEFT_MASK_HIDDEN;
+
+    gsap.set(mask, { clipPath: isMobile ? MASK_VISIBLE : hiddenMask });
+    gsap.set(ken, { scale: isMobile ? 1.03 : 1.05 });
+    if (detailFrame) gsap.set(detailFrame, { y: 24, autoAlpha: 0 });
+    gsap.set(copyBlocks, { y: 18, autoAlpha: 0 });
 
     const entrance = gsap.timeline({
       scrollTrigger: {
-        trigger: section,
-        start: "top 68%",
+        trigger: spread,
+        start: isMobile ? "top 80%" : "top 68%",
         scroller,
         toggleActions: "play none none reverse",
         invalidateOnRefresh: true,
       },
     });
-    timelines.push(entrance);
 
-    entrance
-      .to(
-        leftMask,
-        { clipPath: MASK_VISIBLE, duration: 1.25, ease: "power3.inOut" },
+    if (!isMobile) {
+      entrance.to(
+        mask,
+        { clipPath: MASK_VISIBLE, duration: 1.15, ease: "power3.inOut" },
         0,
-      )
-      .to(
-        rightMask,
-        { clipPath: MASK_VISIBLE, duration: 1.25, ease: "power3.inOut" },
-        0,
-      )
-      .to(
-        copyBlocks,
-        {
-          y: 0,
-          autoAlpha: 1,
-          duration: 0.65,
-          stagger: 0.1,
-          ease: "power2.out",
-        },
-        0.55,
       );
+    }
 
-    const kenBurns = gsap.timeline({
-      paused: true,
-      repeat: -1,
-      yoyo: true,
-      defaults: { ease: "sine.inOut" },
-    });
-    kenBurns
-      .to(leftKen, { scale: 1.08, duration: 10 }, 0)
-      .to(rightKen, { scale: 1.08, duration: 10 }, 0);
-    timelines.push(kenBurns);
+    entrance.to(
+      ken,
+      { scale: 1, duration: isMobile ? 0.9 : 1.35, ease: "power2.out" },
+      0,
+    );
 
-    entrance.eventCallback("onComplete", () => {
-      kenBurns.play(0);
-    });
-    entrance.eventCallback("onReverseComplete", () => {
-      kenBurns.pause(0);
-      gsap.set([leftKen, rightKen], { scale: 1 });
-    });
+    if (detailFrame && !isMobile) {
+      entrance.to(
+        detailFrame,
+        { y: 0, autoAlpha: 1, duration: 0.85, ease: "power3.out" },
+        0.35,
+      );
+    }
 
-    tweens.push(
-      gsap.fromTo(
-        leftImage,
+    entrance.to(
+      copyBlocks,
+      {
+        y: 0,
+        autoAlpha: 1,
+        duration: 0.65,
+        stagger: 0.08,
+        ease: "power2.out",
+      },
+      isMobile ? 0.15 : 0.48,
+    );
+
+    let kenBurns: gsap.core.Timeline | null = null;
+    let driftTween: gsap.core.Tween | null = null;
+
+    if (!isMobile) {
+      kenBurns = gsap.timeline({
+        paused: true,
+        repeat: -1,
+        yoyo: true,
+        defaults: { ease: "sine.inOut" },
+      });
+      kenBurns.to(ken, { scale: 1.05, duration: 12 }, 0);
+
+      entrance.eventCallback("onComplete", () => {
+        kenBurns?.play(0);
+      });
+      entrance.eventCallback("onReverseComplete", () => {
+        kenBurns?.pause(0);
+        gsap.set(ken, { scale: 1.05 });
+      });
+
+      driftTween = gsap.fromTo(
+        drift,
         { yPercent: -3 },
         {
           yPercent: 3,
           ease: "none",
           scrollTrigger: {
-            trigger: section,
+            trigger: spread,
             start: "top bottom",
             end: "bottom top",
             scrub: 1.2,
@@ -193,483 +244,216 @@ function IntroDesktop({
             invalidateOnRefresh: true,
           },
         },
-      ),
-    );
-    tweens.push(
-      gsap.fromTo(
-        rightImage,
-        { yPercent: 3 },
-        {
-          yPercent: -3,
-          ease: "none",
-          scrollTrigger: {
-            trigger: section,
-            start: "top bottom",
-            end: "bottom top",
-            scrub: 1.2,
-            scroller,
-            invalidateOnRefresh: true,
-          },
-        },
-      ),
-    );
-
-    const refresh = () => ScrollTrigger.refresh();
-    window.addEventListener("resize", refresh);
-
-    return () => {
-      window.removeEventListener("resize", refresh);
-      timelines.forEach((tl) => tl.kill());
-      tweens.forEach((tween) => tween.kill());
-    };
-  }, [reducedMotion]);
-
-  const announcementTitle =
-    role === "hers"
-      ? "TRÂN TRỌNG BÁO TIN LỄ VU QUY"
-      : "TRÂN TRỌNG BÁO TIN LỄ THÀNH HÔN";
-
-  return (
-    <section
-      id="section-2"
-      ref={sectionRef}
-      className="relative h-screen min-h-screen overflow-hidden bg-background text-foreground"
-    >
-      <div className="absolute inset-0 grid grid-cols-2">
-        <div
-          ref={leftMaskRef}
-          className="relative h-full overflow-hidden bg-foreground/10"
-        >
-          <div
-            ref={leftImageRef}
-            data-intro-drift
-            className="absolute inset-0 will-change-transform"
-          >
-            <div
-              data-intro-kenburns
-              className="absolute inset-[-10%] will-change-transform"
-            >
-              <Image
-                src={GROOM.image}
-                alt={GROOM.fullName}
-                fill
-                sizes="50vw"
-                priority
-                unoptimized
-                style={{
-                  transform: `translate(${GROOM.offsetX ?? 0}%, ${GROOM.offsetY ?? 0}%) scale(${GROOM.zoom ?? 1})`,
-                  transformOrigin: GROOM.zoomOrigin ?? "center 35%",
-                }}
-                className={`object-cover ${GROOM.imagePosition} saturate-[0.95] brightness-[0.98]`}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div
-          ref={rightMaskRef}
-          className="relative h-full overflow-hidden bg-foreground/10"
-        >
-          <div
-            ref={rightImageRef}
-            data-intro-drift
-            className="absolute inset-0 will-change-transform"
-          >
-            <div
-              data-intro-kenburns
-              className="absolute inset-[-10%] will-change-transform"
-            >
-              <Image
-                src={BRIDE.image}
-                alt={BRIDE.fullName}
-                fill
-                sizes="50vw"
-                priority
-                unoptimized
-                style={{
-                  transform: `translate(${BRIDE.offsetX ?? 0}%, ${BRIDE.offsetY ?? 0}%) scale(${BRIDE.zoom ?? 1})`,
-                  transformOrigin: BRIDE.zoomOrigin ?? "center 38%",
-                }}
-                className={`object-cover ${BRIDE.imagePosition} saturate-[0.95] brightness-[0.98]`}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 z-[1] bg-linear-to-b from-black/25 via-transparent to-background/30"
-      />
-
-      {/* Ivory shutter spine — Thẻ màu be 3 tầng sang trọng & thanh thoát */}
-      <div
-        ref={stripRef}
-        className="absolute top-1/2 left-1/2 z-10 w-[min(92vw,510px)] -translate-x-1/2 -translate-y-1/2 bg-background px-5 py-6 sm:px-6.5 sm:py-6 shadow-[0_16px_50px_rgba(0,0,0,0.35)] border border-[#1a1a1a]/10"
-      >
-        {/* TẦNG 1: Header thiệp — Font chữ in hoa nhỏ, tracking rộng */}
-        <div data-intro-copy className="text-center">
-          <p className="font-sans text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.22em] sm:tracking-[0.26em] text-primary">
-            {announcementTitle}
-          </p>
-        </div>
-
-        {/* TẦNG 2: Song thân — 2 Cột cân xứng (grid-cols-2) */}
-        <div data-intro-copy className="mt-3.5 grid grid-cols-2 gap-4 text-center">
-          <div>
-            <p className="text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.15em] text-foreground/60">
-              NHÀ TRAI
-            </p>
-            <div className="mt-1 font-display text-[13px] sm:text-[14px] leading-snug text-foreground/90 font-normal">
-              <p>Ông Phạm Danh Tĩnh</p>
-              <p className="mt-0.5">Bà Đặng Thị Uyên</p>
-            </div>
-          </div>
-          <div>
-            <p className="text-[10px] sm:text-[11px] font-medium uppercase tracking-[0.15em] text-foreground/60">
-              NHÀ GÁI
-            </p>
-            <div className="mt-1 font-display text-[13px] sm:text-[14px] leading-snug text-foreground/90 font-normal">
-              <p>Ông Nguyễn Văn Kiên</p>
-              <p className="mt-0.5">Bà Nguyễn Thị Thu Hà</p>
-            </div>
-          </div>
-        </div>
-
-        {/* DIVIDER: Đường phân cách mảnh với hoa văn tối giản ❦ — Khoảng thở cân đối */}
-        <div
-          data-intro-copy
-          className="my-5 flex items-center justify-center gap-3"
-          aria-hidden
-        >
-          <span className="h-px flex-1 bg-foreground/15" />
-          <span className=" text-xl text-primary/75 select-none">❦</span>
-          <span className="h-px flex-1 bg-foreground/15" />
-        </div>
-
-        {/* TẦNG 3: Cô dâu & Chú rể — 2 Cột ngang hàng side-by-side */}
-        <div data-intro-copy className="grid grid-cols-2 gap-4 text-center">
-          {/* Chú rể (cột trái - thẳng dưới cột Nhà Trai) */}
-          <div className="flex flex-col items-center">
-            <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.15em] text-foreground/45">
-              CHÚ RỂ
-            </p>
-            <h3 className="mt-1 font-display italic text-[15px] sm:text-[16.5px] font-medium leading-tight text-primary whitespace-nowrap">
-              {GROOM.fullName}
-            </h3>
-            <p className="mt-2.5 text-[10px] sm:text-[11px] leading-relaxed font-light italic text-[#78716c]">
-              &ldquo;{GROOM.quote}&rdquo;
-            </p>
-          </div>
-
-          {/* Cô dâu (cột phải - thẳng dưới cột Nhà Gái) */}
-          <div className="flex flex-col items-center">
-            <p className="text-[9px] sm:text-[10px] font-medium uppercase tracking-[0.15em] text-foreground/45">
-              CÔ DÂU
-            </p>
-            <h3 className="mt-1 font-display italic text-[15px] sm:text-[16.5px] font-medium leading-tight text-primary whitespace-nowrap">
-              {BRIDE.fullName}
-            </h3>
-            <p className="mt-2.5 text-[10px] sm:text-[11px] leading-relaxed font-light italic text-[#78716c]">
-              &ldquo;{BRIDE.quote}&rdquo;
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[calc(var(--section-nav-height,0px)+1.5rem)] bg-linear-to-t from-background/35 to-transparent"
-      />
-    </section>
-  );
-}
-
-function MobileRowCopy({
-  person,
-}: {
-  person: Person;
-  align?: "start" | "end";
-}) {
-  return (
-    <div
-      data-intro-mobile-copy
-      className="px-1 text-center"
-    >
-      <p className="text-[9px] uppercase tracking-[0.15em] text-foreground/45 font-medium">
-        {person.role}
-      </p>
-      <h3 className="mt-1 font-display italic text-[14px] sm:text-[15px] font-medium leading-snug text-primary">
-        {person.fullName}
-      </h3>
-      <p className="mt-2 line-clamp-4 text-[10px] sm:text-[11px] leading-relaxed font-light italic text-[#78716c]">
-        &ldquo;{person.quote}&rdquo;
-      </p>
-    </div>
-  );
-}
-
-function MobilePortrait({
-  person,
-  side,
-}: {
-  person: Person;
-  side: "groom" | "bride";
-}) {
-  return (
-    <div
-      data-intro-mobile-mask
-      data-side={side}
-      className="relative aspect-3/4 w-full overflow-hidden bg-foreground/8"
-    >
-      <div
-        data-intro-mobile-image
-        className="absolute inset-[-8%] will-change-transform"
-      >
-        <Image
-          src={person.image}
-          alt={person.fullName}
-          fill
-          sizes="48vw"
-          unoptimized
-          style={{
-            transform: `translate(${person.offsetX ?? 0}%, ${person.offsetY ?? 0}%) scale(${person.zoom ?? 1})`,
-            transformOrigin: person.zoomOrigin ?? "center 35%",
-          }}
-          className={`object-cover ${person.imagePosition} saturate-[0.95] brightness-[0.98]`}
-        />
-      </div>
-    </div>
-  );
-}
-
-/** Mobile — parallel rows: photos side-by-side, then text blocks under each */
-function IntroMobile({
-  sectionRef,
-  reducedMotion = false,
-  role = "his",
-}: {
-  sectionRef: React.RefObject<HTMLElement | null>;
-  reducedMotion?: boolean;
-  role?: WeddingRole;
-}) {
-  const titleRef = useRef<HTMLDivElement>(null);
-  const photosRef = useRef<HTMLDivElement>(null);
-  const copyRef = useRef<HTMLDivElement>(null);
-  const ampersandRef = useRef<HTMLSpanElement>(null);
-
-  useLayoutEffect(() => {
-    const section = sectionRef.current;
-    const title = titleRef.current;
-    const photos = photosRef.current;
-    const copyRow = copyRef.current;
-    const ampersand = ampersandRef.current;
-
-    if (!section || !title || !photos || !copyRow || !ampersand) {
-      return;
-    }
-
-    if (reducedMotion) {
-      gsap.set(ampersand, { autoAlpha: 0.18 });
-      return;
-    }
-
-    const scroller = getScroller();
-    const timelines: gsap.core.Timeline[] = [];
-    const tweens: gsap.core.Tween[] = [];
-
-    const masks = Array.from(
-      photos.querySelectorAll<HTMLElement>("[data-intro-mobile-mask]"),
-    );
-    const images = Array.from(
-      photos.querySelectorAll<HTMLElement>("[data-intro-mobile-image]"),
-    );
-    const copies = Array.from(
-      copyRow.querySelectorAll<HTMLElement>("[data-intro-mobile-copy]"),
-    );
-
-    if (masks.length < 2 || images.length < 2 || copies.length < 2) {
-      return;
-    }
-
-    gsap.set(title, { y: 20, autoAlpha: 0 });
-    gsap.set(ampersand, { autoAlpha: 0 });
-    gsap.set(masks[0], { clipPath: LEFT_MASK_HIDDEN });
-    gsap.set(masks[1], { clipPath: RIGHT_MASK_HIDDEN });
-    gsap.set(images, { scale: 1.08 });
-    gsap.set(copies, { y: 22, autoAlpha: 0 });
-
-    const entrance = gsap.timeline({
-      scrollTrigger: {
-        trigger: section,
-        start: "top 78%",
-        scroller,
-        toggleActions: "play none none reverse",
-        invalidateOnRefresh: true,
-      },
-    });
-    timelines.push(entrance);
-
-    entrance
-      .to(title, { y: 0, autoAlpha: 1, duration: 0.65, ease: "power3.out" }, 0)
-      .to(
-        ampersand,
-        { autoAlpha: 0.18, duration: 1.2, ease: "power2.out" },
-        0.15,
-      )
-      .to(
-        masks[0],
-        { clipPath: MASK_VISIBLE, duration: 1.05, ease: "power3.inOut" },
-        0.2,
-      )
-      .to(
-        masks[1],
-        { clipPath: MASK_VISIBLE, duration: 1.05, ease: "power3.inOut" },
-        0.32,
-      )
-      .to(
-        images,
-        { scale: 1, duration: 1.05, ease: "power3.out", stagger: 0.12 },
-        0.2,
-      )
-      .to(
-        copies,
-        {
-          y: 0,
-          autoAlpha: 1,
-          duration: 0.65,
-          stagger: 0.1,
-          ease: "power2.out",
-        },
-        0.85,
       );
+    }
 
     const refresh = () => ScrollTrigger.refresh();
     window.addEventListener("resize", refresh);
 
     return () => {
       window.removeEventListener("resize", refresh);
-      timelines.forEach((tl) => tl.kill());
-      tweens.forEach((tween) => tween.kill());
+      chromeTrigger.kill();
+      entrance.scrollTrigger?.kill();
+      entrance.kill();
+      kenBurns?.kill();
+      driftTween?.scrollTrigger?.kill();
+      driftTween?.kill();
     };
-  }, [reducedMotion, sectionRef]);
+  }, [
+    isMobile,
+    profile.cornerMode,
+    profile.leaveBackMode,
+    profile.paperSide,
+    reducedMotion,
+  ]);
 
-  const announcementTitle =
-    role === "hers"
-      ? "TRÂN TRỌNG BÁO TIN LỄ VU QUY"
-      : "TRÂN TRỌNG BÁO TIN LỄ THÀNH HÔN";
+  const isPaperLeft = profile.paperSide === "left";
 
   return (
-    <section
-      id="section-2"
-      ref={sectionRef}
-      className="relative overflow-hidden bg-background text-foreground px-5 py-16 sm:py-20"
+    <article
+      id={profile.id}
+      ref={spreadRef}
+      className="relative grid grid-cols-1 bg-background md:h-screen md:min-h-[680px] md:grid-cols-2 md:overflow-hidden"
     >
-      <div className="relative mx-auto flex w-full max-w-sm flex-col justify-center gap-4">
-        {/* Header: Announcement & Parents */}
-        <header className="text-center">
-          <p className="font-sans text-[9px] font-medium uppercase tracking-[0.22em] text-primary">
-            {announcementTitle}
+      {showMobileDivider && (
+        <div
+          aria-hidden
+          className="order-0 mx-6 mb-8 border-t border-[#2B3A2D]/12 sm:mx-8 md:hidden"
+        />
+      )}
+
+      {/* Nửa Nền Giấy Mỹ Thuật #E6DFD3: Ảnh chi tiết nhỏ + Thông tin & Quote */}
+      <div
+        ref={paperRef}
+        className={`relative order-2 flex flex-col items-center justify-center bg-background px-6 pt-7 pb-10 text-center md:h-full md:px-10 md:pt-14 md:pb-[calc(var(--section-nav-height,0px)+3.5rem)] lg:px-14 ${
+          isPaperLeft ? "md:order-1" : "md:order-2"
+        }`}
+      >
+        {showCeremonyTopTag && (
+          <p className="hidden md:block md:absolute md:top-8 md:inset-x-0 font-sans text-[9.5px] font-medium uppercase tracking-[0.28em] text-[#2B3A2D]/50">
+            {ceremonyLabel}
           </p>
-          <div ref={titleRef} className="mt-2.5 grid grid-cols-2 gap-3 text-center">
-            <div>
-              <p className="text-[9px] font-medium uppercase tracking-[0.15em] text-foreground/60">
-                NHÀ TRAI
-              </p>
-              <div className="mt-0.5 font-display text-[12px] leading-snug text-foreground/90 font-normal">
-                <p>Ông Phạm Danh Tĩnh</p>
-                <p className="mt-0.5">Bà Đặng Thị Uyên</p>
-              </div>
-            </div>
-            <div>
-              <p className="text-[9px] font-medium uppercase tracking-[0.15em] text-foreground/60">
-                NHÀ GÁI
-              </p>
-              <div className="mt-0.5 font-display text-[12px] leading-snug text-foreground/90 font-normal">
-                <p>Ông Nguyễn Văn Kiên</p>
-                <p className="mt-0.5">Bà Nguyễn Thị Thu Hà</p>
-              </div>
+        )}
+
+        <div className="flex w-full max-w-[420px] flex-col items-center">
+          {/* Ảnh phụ nhỏ khung biên tập (Desktop) */}
+          <div
+            data-spread-detail
+            className="hidden md:block w-[min(100%,230px)] lg:w-[min(100%,255px)] overflow-hidden border border-[#2B3A2D]/12 bg-foreground/5 shadow-[0_14px_34px_rgba(43,58,45,0.08)]"
+          >
+            <div className="relative aspect-[3/4] max-h-[38vh] w-full overflow-hidden">
+              <Image
+                src={profile.detailImage}
+                alt={profile.detailAlt}
+                fill
+                sizes="(min-width: 1024px) 255px, 230px"
+                unoptimized
+                className={`object-cover ${profile.detailPosition} saturate-[0.96]`}
+              />
             </div>
           </div>
-        </header>
 
-        <span
-          ref={ampersandRef}
-          aria-hidden
-          className="pointer-events-none absolute left-1/2 top-[70%] z-0 -translate-x-1/2 -translate-y-1/2 select-none font-display text-[clamp(14rem,68vw,22rem)] italic leading-none text-primary opacity-0"
-        >
-          &
-        </span>
+          <div className="md:mt-6 flex flex-col items-center">
+            <p
+              data-spread-copy
+              className="font-sans text-[9.5px] sm:text-[10px] font-medium uppercase tracking-[0.28em] text-[#2B3A2D]/60"
+            >
+              {profile.indexLabel}
+            </p>
 
-        {/* Row 1 — portraits side by side */}
-        <div ref={photosRef} className="relative z-10 grid grid-cols-2 gap-3">
-          <MobilePortrait person={GROOM} side="groom" />
-          <MobilePortrait person={BRIDE} side="bride" />
-        </div>
+            <h3
+              data-spread-copy
+              className="mt-2 font-display italic text-[clamp(1.5rem,1.1rem+1.2vw,1.95rem)] font-medium leading-[1.15] text-primary md:whitespace-nowrap"
+            >
+              {profile.fullName}
+            </h3>
 
-        {/* Row 2 — copy under each portrait */}
-        <div ref={copyRef} className="relative z-10 grid grid-cols-2 gap-3">
-          <MobileRowCopy person={GROOM} />
-          <MobileRowCopy person={BRIDE} />
+            <div
+              data-spread-copy
+              aria-hidden
+              className="mx-auto my-3.5 h-px w-9 bg-primary/35"
+            />
+
+            <p
+              data-spread-copy
+              className="max-w-[34ch] text-[12.5px] sm:text-[13px] leading-relaxed font-normal italic text-[#2B3A2D]/85 text-balance"
+            >
+              &ldquo;{profile.quote}&rdquo;
+            </p>
+
+            {/* Nút lật qua lại giữa 01. Chú rể và 02. Cô dâu trên Desktop */}
+            <nav
+              data-spread-copy
+              aria-label="Chuyển giữa chú rể và cô dâu"
+              className="mt-6 hidden md:flex items-center justify-center gap-3 text-[9.5px] font-sans uppercase tracking-[0.22em]"
+            >
+              {INTRO_PROFILES.map((item, idx) => {
+                const isCurrent = item.id === profile.id;
+                return (
+                  <span key={item.id} className="inline-flex items-center gap-3">
+                    {idx > 0 && (
+                      <span aria-hidden className="text-[#2B3A2D]/25">
+                        /
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => scrollToSection(item.id)}
+                      aria-current={isCurrent ? "page" : undefined}
+                      className={`cursor-pointer pb-0.5 transition-colors ${
+                        isCurrent
+                          ? "border-b border-primary font-semibold text-primary"
+                          : "text-[#2B3A2D]/45 hover:text-primary"
+                      }`}
+                    >
+                      {item.shortLabel}
+                    </button>
+                  </span>
+                );
+              })}
+            </nav>
+          </div>
         </div>
       </div>
-    </section>
-  );
-}
 
-function getLayoutMode(): "desktop" | "mobile" | "reduced-desktop" | "reduced-mobile" {
-  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const mobile = isMobileViewport();
-  if (reduced) {
-    return mobile ? "reduced-mobile" : "reduced-desktop";
-  }
-  return mobile ? "mobile" : "desktop";
+      {/* Mobile: Khung tranh giấy (Editorial Inset) / Desktop: Chân dung tràn viền Full-Bleed */}
+      <div
+        className={`relative order-1 bg-background px-6 sm:px-8 md:h-full md:px-0 ${
+          isPaperLeft ? "md:order-2" : "md:order-1"
+        }`}
+      >
+        <div
+          ref={maskRef}
+          className="relative aspect-[4/5] w-full overflow-hidden border border-[#2B3A2D]/10 bg-foreground/8 shadow-[0_14px_34px_rgba(43,58,45,0.08)] md:aspect-auto md:h-full md:border-0 md:shadow-none"
+        >
+          <div
+            ref={driftRef}
+            className="absolute inset-0 will-change-transform"
+          >
+            <div
+              ref={kenRef}
+              className="absolute inset-[-6%] will-change-transform"
+            >
+              <Image
+                src={profile.portraitImage}
+                alt={profile.fullName}
+                fill
+                sizes="(min-width: 768px) 50vw, calc(100vw - 3rem)"
+                priority
+                unoptimized
+                className={`object-cover ${profile.portraitPosition} saturate-[0.96] brightness-[0.98]`}
+              />
+            </div>
+          </div>
+
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-[1] bg-linear-to-b from-black/22 via-transparent to-black/28"
+          />
+        </div>
+      </div>
+    </article>
+  );
 }
 
 export function IntroductionSection({ role = "his" }: { role?: WeddingRole }) {
-  const sectionRef = useRef<HTMLElement>(null);
-  const layoutMode = useSyncExternalStore(
-    subscribeLayout,
-    getLayoutMode,
-    (): "desktop" | "mobile" | "reduced-desktop" | "reduced-mobile" =>
-      "desktop",
+  const env = useSyncExternalStore(
+    subscribeEnvironment,
+    getEnvironmentSnapshot,
+    () => "motion-desktop",
   );
 
-  useLayoutEffect(() => {
-    const section = sectionRef.current;
-    if (!section) {
-      return;
-    }
+  const reducedMotion = env.startsWith("reduced");
+  const isMobile = env.endsWith("mobile");
 
-    const scroller = getScroller();
-    const chromeTrigger = ScrollTrigger.create({
-      trigger: section,
-      start: "top 50%",
-      end: "bottom 50%",
-      scroller,
-      invalidateOnRefresh: true,
-      // Beige CornerLabels over cinematic photos
-      onEnter: () => setCornerNavColor("hero"),
-      onEnterBack: () => setCornerNavColor("hero"),
-      onLeaveBack: () => setCornerNavColor("hero"),
-    });
+  const ceremonyLabel =
+    role === "hers"
+      ? "02 / LỄ VU QUY · 28.11.2026"
+      : "02 / LỄ THÀNH HÔN · 29.11.2026";
 
-    return () => {
-      chromeTrigger.kill();
-    };
-  }, [layoutMode]);
+  return (
+    <section
+      id="section-2"
+      aria-label="Giới thiệu chú rể và cô dâu"
+      className="relative bg-background text-foreground"
+    >
+      <div className="px-6 pt-9 pb-5 text-center md:hidden">
+        <p className="font-sans text-[10px] font-medium uppercase tracking-[0.26em] text-primary">
+          {ceremonyLabel}
+        </p>
+      </div>
 
-  if (layoutMode === "mobile") {
-    return <IntroMobile sectionRef={sectionRef} role={role} />;
-  }
-
-  if (layoutMode === "reduced-mobile") {
-    return <IntroMobile sectionRef={sectionRef} reducedMotion role={role} />;
-  }
-
-  if (layoutMode === "reduced-desktop") {
-    return <IntroDesktop sectionRef={sectionRef} reducedMotion role={role} />;
-  }
-
-  return <IntroDesktop sectionRef={sectionRef} role={role} />;
+      {INTRO_PROFILES.map((profile, index) => (
+        <IntroSpread
+          key={profile.id}
+          profile={profile}
+          ceremonyLabel={ceremonyLabel}
+          showCeremonyTopTag={index === 0}
+          showMobileDivider={index > 0}
+          reducedMotion={reducedMotion}
+          isMobile={isMobile}
+        />
+      ))}
+    </section>
+  );
 }

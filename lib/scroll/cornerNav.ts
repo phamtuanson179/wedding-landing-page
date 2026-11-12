@@ -146,15 +146,45 @@ function showCornerChrome() {
   });
 }
 
-export function setCornerNavColor(mode: "loading" | "hero" | "accent") {
+export type CornerNavMode =
+  | "loading"
+  | "hero"
+  | "accent"
+  | "split-left-accent"
+  | "split-right-accent";
+
+export function setCornerNavColor(mode: CornerNavMode) {
   const cornerNav = getCornerNav();
   if (!cornerNav) {
     return;
   }
 
-  const isBeige = mode === "loading" || mode === "hero";
-  cornerNav.classList.toggle("text-background", isBeige);
-  cornerNav.classList.toggle("text-primary", !isBeige);
+  // Right-bottom seal outline follows whichever background sits on the right half.
+  const isRightDark =
+    mode === "loading" || mode === "hero" || mode === "split-left-accent";
+  cornerNav.classList.toggle("text-background", isRightDark);
+  cornerNav.classList.toggle("text-primary", !isRightDark);
+
+  const leftTargets =
+    cornerNav.querySelectorAll<HTMLElement>("[data-corner-left]");
+  const rightTargets =
+    cornerNav.querySelectorAll<HTMLElement>("[data-corner-right]");
+
+  if (mode === "split-left-accent" || mode === "split-right-accent") {
+    const leftBurgundy = mode === "split-left-accent";
+    leftTargets.forEach((el) => {
+      el.classList.toggle("text-primary", leftBurgundy);
+      el.classList.toggle("text-background", !leftBurgundy);
+    });
+    rightTargets.forEach((el) => {
+      el.classList.toggle("text-background", leftBurgundy);
+      el.classList.toggle("text-primary", !leftBurgundy);
+    });
+    return;
+  }
+
+  leftTargets.forEach((el) => el.classList.remove("text-primary", "text-background"));
+  rightTargets.forEach((el) => el.classList.remove("text-primary", "text-background"));
 }
 
 export function setScrollProgressColor(theme: "accent" | "beige") {

@@ -247,17 +247,17 @@ export function GallerySection({
     "4/5": "aspect-[4/5]",
   };
 
-  // Chapter 1: Bóng râm & Khởi đầu (12 in grid + 1 closing highlight = 13 photos)
-  const m1Grid = photos.slice(0, 12);
-  const m1Highlight = photos[12];
+  // Chapter 1: Bóng râm & Khởi đầu (9 in grid + 1 closing highlight = 10 photos)
+  const m1Grid = photos.slice(0, 9);
+  const m1Highlight = photos[9];
 
-  // Chapter 2: Nắng lên & Tà voan bay (12 in grid + 1 closing highlight = 13 photos)
-  const m2Grid = photos.slice(13, 25);
-  const m2Highlight = photos[25];
+  // Chapter 2: Nắng lên & Tà voan bay (9 in grid + 1 closing highlight = 10 photos)
+  const m2Grid = photos.slice(10, 19);
+  const m2Highlight = photos[19];
 
-  // Chapter 3: Nắng cuối chiều vàng / Hoàng hôn (12 in grid + 1 closing highlight = 13 photos)
-  const m3Grid = photos.slice(26, 38);
-  const m3Highlight = photos[38];
+  // Chapter 3: Nắng cuối chiều vàng / Hoàng hôn (9 in grid + 1 closing highlight = 10 photos)
+  const m3Grid = photos.slice(20, 29);
+  const m3Highlight = photos[29];
 
   const digitalPhotos = [
     ...m1Grid,
@@ -268,7 +268,7 @@ export function GallerySection({
     ...(m3Highlight ? [m3Highlight] : []),
   ];
 
-  // Prepare combined flat list for lightbox navigation (39 digital + 32 film = 71 items)
+  // Prepare combined flat list for lightbox navigation (30 digital + 32 film = 62 items)
   const allItems: AnyGalleryItem[] = [
     ...digitalPhotos.map((p) => ({
       id: p.id,
@@ -344,220 +344,126 @@ export function GallerySection({
         </header>
 
         {/* ========================================================================= */}
-        {/* ========================================================================= */}
-        {/* PART I: THE DIGITAL EDITORIAL (36 PHOTOS — 3 CHAPTERS × 12 PHOTOS)       */}
+        {/* PART I: THE DIGITAL EDITORIAL (30 PHOTOS — 3 CHAPTERS × (9 GRID + 1))    */}
         {/* ========================================================================= */}
         <div ref={digitalRef} className="pb-16 sm:pb-24 md:pb-28">
-          {/* ----------------------------------------------------------------------- */}
-          {/* CHƯƠNG 1: BÓNG RÂM & KHỞI ĐẦU (12 ẢNH LƯỚI + 1 ẢNH HIGHLIGHT)           */}
-          {/* ----------------------------------------------------------------------- */}
-          <div className="w-full mb-16 sm:mb-20 md:mb-24">
-            <div className="mx-auto max-w-5xl px-4 sm:px-6 mb-4 sm:mb-6 flex items-center justify-between text-[11px] font-sans uppercase tracking-[0.24em] text-foreground/60">
-              <span>01 · BÓNG RÂM &amp; KHỞI ĐẦU</span>
-              <span className="font-display italic lowercase text-foreground/40 text-xs hidden sm:inline">
-                the quiet morning
-              </span>
-            </div>
-
-            {/* 12-photo 2/3 column grid */}
-            <div className="mx-auto max-w-5xl px-4 sm:px-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3.5 md:gap-5">
-                {m1Grid.map((photo, i) => (
-                  <div
-                    key={photo.id}
-                    onClick={() => openLightbox(i)}
-                    className="group relative w-full aspect-[3/4] cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_4px_16px_rgba(44,39,37,0.04)]"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photo.src}
-                      alt={photo.alt}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                    />
-                    <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/15" />
+          {[
+            {
+              title: "01 · BÓNG RÂM & KHỞI ĐẦU",
+              subtitle: "the quiet morning",
+              grid: m1Grid,
+              highlight: m1Highlight,
+              gridOffset: 0,
+              highlightIndex: 9,
+              interludeLabel: "INTERLUDE · 21°02'N 105°50'E",
+              interludeQuote:
+                "“Dưới bóng cây xanh dịu mát, ta nhận ra khoảnh khắc đẹp nhất là khi có em kề bên.”",
+            },
+            {
+              title: "02 · NẮNG LÊN & TÀ VOAN",
+              subtitle: "under the veil",
+              grid: m2Grid,
+              highlight: m2Highlight,
+              gridOffset: 10,
+              highlightIndex: 19,
+              interludeLabel: "INTERLUDE · SUNLIT AFTERNOON",
+              interludeQuote:
+                "“Nụ cười của em rạng rỡ như ánh nắng sớm, sưởi ấm mọi lối ta cùng qua.”",
+            },
+            {
+              title: "03 · HOÀNG HÔN & CHIỀU VÀNG",
+              subtitle: "golden hour glow",
+              grid: m3Grid,
+              highlight: m3Highlight,
+              gridOffset: 20,
+              highlightIndex: 29,
+              interludeLabel: "INTERLUDE · GOLDEN HOUR",
+              interludeQuote:
+                "“Khi hoàng hôn buông xuống, tình yêu không chỉ là lời hứa, mà là cả một hành trình.”",
+            },
+          ].map((chapter, chapterIdx, arr) => {
+            const isLast = chapterIdx === arr.length - 1;
+            return (
+              <div key={chapter.title}>
+                <div className={isLast ? "w-full" : "w-full mb-16 sm:mb-20 md:mb-24"}>
+                  <div className="mx-auto max-w-5xl px-4 sm:px-6 mb-4 sm:mb-6 flex items-center justify-between text-[11px] font-sans uppercase tracking-[0.24em] text-foreground/60">
+                    <span>{chapter.title}</span>
+                    <span className="font-display italic lowercase text-foreground/40 text-xs hidden sm:inline">
+                      {chapter.subtitle}
+                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
 
-            {/* Chapter 1: Closing Highlight Shot */}
-            {m1Highlight && (
-              <div className="mx-auto max-w-3xl md:max-w-4xl px-4 sm:px-6 mt-4 sm:mt-6">
+                  {/* 9-photo 3x3 desktop grid (8-photo 2x4 on mobile by hiding the 9th) */}
+                  <div className="mx-auto max-w-5xl px-4 sm:px-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3.5 md:gap-5">
+                      {chapter.grid.map((photo, i) => (
+                        <div
+                          key={photo.id}
+                          onClick={() => openLightbox(chapter.gridOffset + i)}
+                          className={`${
+                            i === 8 ? "hidden md:block " : ""
+                          }group relative w-full aspect-[3/4] cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_4px_16px_rgba(44,39,37,0.04)]`}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={photo.src}
+                            alt={photo.alt}
+                            loading="lazy"
+                            decoding="async"
+                            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+                          />
+                          <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/15" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Closing Highlight / Interlude Photo */}
+                  {chapter.highlight && (
+                    <div className="mx-auto max-w-3xl md:max-w-4xl px-4 sm:px-6 mt-4 sm:mt-6">
+                      <div
+                        onClick={() => openLightbox(chapter.highlightIndex)}
+                        className={`group relative w-full ${ASPECT_CLASS_MAP[chapter.highlight.aspect ?? "3/4"] ?? "aspect-[3/4]"} cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_10px_30px_rgba(44,39,37,0.06)]`}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={chapter.highlight.src}
+                          alt={chapter.highlight.alt}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+                        />
+                        <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/15" />
+                        <span className="absolute bottom-3 right-3 text-[9px] uppercase tracking-[0.16em] text-white/90 bg-black/50 px-2.5 py-1 rounded-xs backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                          Phóng to ↗
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div
-                  onClick={() => openLightbox(12)}
-                  className={`group relative w-full ${ASPECT_CLASS_MAP[m1Highlight.aspect ?? "3/4"] ?? "aspect-[3/4]"} cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_10px_30px_rgba(44,39,37,0.06)]`}
+                  className={
+                    isLast
+                      ? "mt-16 sm:mt-24 md:mt-28 mb-4 text-center px-6 max-w-xl mx-auto"
+                      : "my-16 sm:my-24 md:my-28 text-center px-6 max-w-xl mx-auto"
+                  }
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={m1Highlight.src}
-                    alt={m1Highlight.alt}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                  />
-                  <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/15" />
-                  <span className="absolute bottom-3 right-3 text-[9px] uppercase tracking-[0.16em] text-white/90 bg-black/50 px-2.5 py-1 rounded-xs backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                    Phóng to ↗
+                  <span className="text-[9px] sm:text-[10px] tracking-[0.3em] uppercase text-foreground/45 font-sans block mb-2.5 font-medium">
+                    {chapter.interludeLabel}
                   </span>
+                  <blockquote className="font-display italic text-xl sm:text-2xl md:text-3xl text-foreground/85 leading-snug">
+                    {chapter.interludeQuote}
+                  </blockquote>
+                  <div className="mx-auto mt-6 h-px w-10 bg-foreground/20" />
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Interlude 01 */}
-          <div className="my-16 sm:my-24 md:my-28 text-center px-6 max-w-xl mx-auto">
-            <span className="text-[9px] sm:text-[10px] tracking-[0.3em] uppercase text-foreground/45 font-sans block mb-2.5 font-medium">
-              INTERLUDE · 21°02&apos;N 105°50&apos;E
-            </span>
-            <blockquote className="font-display italic text-xl sm:text-2xl md:text-3xl text-foreground/85 leading-snug">
-              “Dưới bóng cây xanh dịu mát, ta nhận ra khoảnh khắc đẹp nhất là khi có em kề bên.”
-            </blockquote>
-            <div className="mx-auto mt-6 h-px w-10 bg-foreground/20" />
-          </div>
-
-          {/* ----------------------------------------------------------------------- */}
-          {/* CHƯƠNG 2: NẮNG LÊN & TÀ VOAN BAY (12 ẢNH LƯỚI + 1 ẢNH HIGHLIGHT)         */}
-          {/* ----------------------------------------------------------------------- */}
-          <div className="w-full mb-16 sm:mb-20 md:mb-24">
-            <div className="mx-auto max-w-5xl px-4 sm:px-6 mb-4 sm:mb-6 flex items-center justify-between text-[11px] font-sans uppercase tracking-[0.24em] text-foreground/60">
-              <span>02 · NẮNG LÊN &amp; TÀ VOAN</span>
-              <span className="font-display italic lowercase text-foreground/40 text-xs hidden sm:inline">
-                under the veil
-              </span>
-            </div>
-
-            {/* 12-photo 2/3 column grid */}
-            <div className="mx-auto max-w-5xl px-4 sm:px-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3.5 md:gap-5">
-                {m2Grid.map((photo, i) => (
-                  <div
-                    key={photo.id}
-                    onClick={() => openLightbox(13 + i)}
-                    className="group relative w-full aspect-[3/4] cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_4px_16px_rgba(44,39,37,0.04)]"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photo.src}
-                      alt={photo.alt}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                    />
-                    <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/15" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Chapter 2: Closing Highlight Shot */}
-            {m2Highlight && (
-              <div className="mx-auto max-w-3xl md:max-w-4xl px-4 sm:px-6 mt-4 sm:mt-6">
-                <div
-                  onClick={() => openLightbox(25)}
-                  className={`group relative w-full ${ASPECT_CLASS_MAP[m2Highlight.aspect ?? "3/4"] ?? "aspect-[3/4]"} cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_10px_30px_rgba(44,39,37,0.06)]`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={m2Highlight.src}
-                    alt={m2Highlight.alt}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                  />
-                  <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/15" />
-                  <span className="absolute bottom-3 right-3 text-[9px] uppercase tracking-[0.16em] text-white/90 bg-black/50 px-2.5 py-1 rounded-xs backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                    Phóng to ↗
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Interlude 02 */}
-          <div className="my-16 sm:my-24 md:my-28 text-center px-6 max-w-xl mx-auto">
-            <span className="text-[9px] sm:text-[10px] tracking-[0.3em] uppercase text-foreground/45 font-sans block mb-2.5 font-medium">
-              INTERLUDE · SUNLIT AFTERNOON
-            </span>
-            <blockquote className="font-display italic text-xl sm:text-2xl md:text-3xl text-foreground/85 leading-snug">
-              “Nụ cười của em rạng rỡ như ánh nắng sớm, sưởi ấm mọi lối ta cùng qua.”
-            </blockquote>
-            <div className="mx-auto mt-6 h-px w-10 bg-foreground/20" />
-          </div>
-
-          {/* ----------------------------------------------------------------------- */}
-          {/* CHƯƠNG 3: NẮNG CUỐI CHIỀU VÀNG (12 ẢNH LƯỚI + 1 ẢNH HIGHLIGHT)           */}
-          {/* ----------------------------------------------------------------------- */}
-          <div className="w-full">
-            <div className="mx-auto max-w-5xl px-4 sm:px-6 mb-4 sm:mb-6 flex items-center justify-between text-[11px] font-sans uppercase tracking-[0.24em] text-foreground/60">
-              <span>03 · HOÀNG HÔN &amp; CHIỀU VÀNG</span>
-              <span className="font-display italic lowercase text-foreground/40 text-xs hidden sm:inline">
-                golden hour glow
-              </span>
-            </div>
-
-            {/* 12-photo 2/3 column grid */}
-            <div className="mx-auto max-w-5xl px-4 sm:px-6">
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3.5 md:gap-5">
-                {m3Grid.map((photo, i) => (
-                  <div
-                    key={photo.id}
-                    onClick={() => openLightbox(26 + i)}
-                    className="group relative w-full aspect-[3/4] cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_4px_16px_rgba(44,39,37,0.04)]"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={photo.src}
-                      alt={photo.alt}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
-                    />
-                    <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/15" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Chapter 3: Closing Highlight Shot */}
-            {m3Highlight && (
-              <div className="mx-auto max-w-3xl md:max-w-4xl px-4 sm:px-6 mt-4 sm:mt-6">
-                <div
-                  onClick={() => openLightbox(38)}
-                  className={`group relative w-full ${ASPECT_CLASS_MAP[m3Highlight.aspect ?? "3/4"] ?? "aspect-[3/4]"} cursor-pointer overflow-hidden rounded-xs bg-foreground/5 border border-foreground/10 shadow-[0_12px_36px_rgba(44,39,37,0.07)]`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={m3Highlight.src}
-                    alt={m3Highlight.alt}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
-                  />
-                  <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/15" />
-                  <span className="absolute bottom-3 right-3 text-[9px] uppercase tracking-[0.16em] text-white/90 bg-black/50 px-2.5 py-1 rounded-xs backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                    Phóng to ↗
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Interlude 03 */}
-          <div className="mt-16 sm:mt-24 md:mt-28 mb-4 text-center px-6 max-w-xl mx-auto">
-            <span className="text-[9px] sm:text-[10px] tracking-[0.3em] uppercase text-foreground/45 font-sans block mb-2.5 font-medium">
-              INTERLUDE · GOLDEN HOUR
-            </span>
-            <blockquote className="font-display italic text-xl sm:text-2xl md:text-3xl text-foreground/85 leading-snug">
-              “Khi hoàng hôn buông xuống, tình yêu không chỉ là lời hứa, mà là cả một hành trình.”
-            </blockquote>
-            <div className="mx-auto mt-6 h-px w-10 bg-foreground/20" />
-          </div>
+            );
+          })}
         </div>
 
         {/* ========================================================================= */}
-        {/* PART II: THE 35MM FILM ARCHIVE (32 FILM PHOTOS) - VISUAL SHIFT            */}
+        {/* PART II: THE 35MM FILM ARCHIVE (16 FILM PHOTOS) - VISUAL SHIFT            */}
         {/* ========================================================================= */}
         <div
           ref={filmSectionRef}
@@ -577,9 +483,9 @@ export function GallerySection({
             </p>
           </div>
 
-          {/* 35mm Contact Sheet / Proof Sheet Grid (32 frames) */}
+          {/* 35mm Contact Sheet / Proof Sheet Grid (16 frames: 2x8 mobile, 4x4 desktop) */}
           <div className="mx-auto max-w-6xl">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3.5 md:gap-4.5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5 md:gap-4.5">
               {filmPhotos.map((film, index) => {
                 const globalIdx = digitalPhotos.length + index;
                 return (

@@ -10,22 +10,22 @@ function SpeakerIcon({ muted }: { muted: boolean }) {
   if (muted) {
     return (
       <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        className="h-4 w-4"
-        aria-hidden="true"
+        viewBox='0 0 24 24'
+        fill='none'
+        stroke='currentColor'
+        strokeWidth='1.5'
+        className='h-4 w-4'
+        aria-hidden='true'
       >
         <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M11 5 6.5 9H3v6h3.5L11 19V5Z"
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          d='M11 5 6.5 9H3v6h3.5L11 19V5Z'
         />
         <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="m16 10 4 4m0-4-4 4"
+          strokeLinecap='round'
+          strokeLinejoin='round'
+          d='m16 10 4 4m0-4-4 4'
         />
       </svg>
     );
@@ -33,22 +33,22 @@ function SpeakerIcon({ muted }: { muted: boolean }) {
 
   return (
     <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      className="h-4 w-4"
-      aria-hidden="true"
+      viewBox='0 0 24 24'
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='1.5'
+      className='h-4 w-4'
+      aria-hidden='true'
     >
       <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M11 5 6.5 9H3v6h3.5L11 19V5Z"
+        strokeLinecap='round'
+        strokeLinejoin='round'
+        d='M11 5 6.5 9H3v6h3.5L11 19V5Z'
       />
       <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"
+        strokeLinecap='round'
+        strokeLinejoin='round'
+        d='M15.5 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12'
       />
     </svg>
   );
@@ -58,6 +58,7 @@ export function BackgroundMusic() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const unlockedRef = useRef(false);
   const mutedRef = useRef(false);
+  const wasPlayingBeforeHideRef = useRef(false);
 
   const [unlocked, setUnlocked] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -73,6 +74,16 @@ export function BackgroundMusic() {
     audio.volume = MUSIC_VOLUME;
     audio.muted = true;
 
+    const syncMediaSession = (state: "playing" | "paused") => {
+      if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+        try {
+          navigator.mediaSession.playbackState = state;
+        } catch {
+          // ignore
+        }
+      }
+    };
+
     const playWithSound = () => {
       mutedRef.current = false;
       setMuted(false);
@@ -81,6 +92,7 @@ export function BackgroundMusic() {
       const playAttempt = audio.play();
       unlockedRef.current = true;
       setUnlocked(true);
+      syncMediaSession("playing");
 
       void playAttempt.catch(() => {});
     };
@@ -90,16 +102,81 @@ export function BackgroundMusic() {
       setMuted(nextMuted);
       audio.muted = nextMuted;
 
-      if (!nextMuted && audio.paused) {
-        void audio.play().catch(() => {});
+      if (nextMuted) {
+        audio.pause();
+        syncMediaSession("paused");
+      } else if (audio.paused) {
+        const playAttempt = audio.play();
+        syncMediaSession("playing");
+        void playAttempt.catch(() => {});
       }
     };
 
-    return registerBackgroundMusicController({
+    const handleVisibilityChange = () => {
+      if (document.hidden || document.visibilityState === "hidden") {
+        if (!audio.paused && !mutedRef.current && unlockedRef.current) {
+          wasPlayingBeforeHideRef.current = true;
+        }
+        audio.pause();
+        syncMediaSession("paused");
+      } else if (document.visibilityState === "visible") {
+        if (
+          wasPlayingBeforeHideRef.current &&
+          !mutedRef.current &&
+          unlockedRef.current
+        ) {
+          audio.muted = false;
+          const playAttempt = audio.play();
+          syncMediaSession("playing");
+          void playAttempt.catch(() => {});
+        }
+        wasPlayingBeforeHideRef.current = false;
+      }
+    };
+
+    const handlePageHide = () => {
+      if (!audio.paused && !mutedRef.current && unlockedRef.current) {
+        wasPlayingBeforeHideRef.current = true;
+      }
+      audio.pause();
+      syncMediaSession("paused");
+    };
+
+    const handlePageShow = () => {
+      if (
+        !document.hidden &&
+        wasPlayingBeforeHideRef.current &&
+        !mutedRef.current &&
+        unlockedRef.current
+      ) {
+        audio.muted = false;
+        const playAttempt = audio.play();
+        syncMediaSession("playing");
+        void playAttempt.catch(() => {});
+      }
+      wasPlayingBeforeHideRef.current = false;
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handlePageHide);
+    window.addEventListener("pageshow", handlePageShow);
+    window.addEventListener("freeze", handlePageHide);
+
+    const unregister = registerBackgroundMusicController({
       playWithSound,
       setMuted: setMutedState,
       isUnlocked: () => unlockedRef.current,
     });
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handlePageHide);
+      window.removeEventListener("pageshow", handlePageShow);
+      window.removeEventListener("freeze", handlePageHide);
+      unregister();
+      audio.pause();
+      syncMediaSession("paused");
+    };
   }, []);
 
   const toggleMute = () => {
@@ -108,13 +185,25 @@ export function BackgroundMusic() {
       return;
     }
 
+    const syncMediaSession = (state: "playing" | "paused") => {
+      if (typeof navigator !== "undefined" && "mediaSession" in navigator) {
+        try {
+          navigator.mediaSession.playbackState = state;
+        } catch {
+          // ignore
+        }
+      }
+    };
+
     if (!unlockedRef.current) {
       mutedRef.current = false;
       setMuted(false);
       audio.muted = false;
-      void audio.play().catch(() => {});
+      const playAttempt = audio.play();
       unlockedRef.current = true;
       setUnlocked(true);
+      syncMediaSession("playing");
+      void playAttempt.catch(() => {});
       return;
     }
 
@@ -123,8 +212,13 @@ export function BackgroundMusic() {
     setMuted(nextMuted);
     audio.muted = nextMuted;
 
-    if (!nextMuted && audio.paused) {
-      void audio.play().catch(() => {});
+    if (nextMuted) {
+      audio.pause();
+      syncMediaSession("paused");
+    } else if (audio.paused) {
+      const playAttempt = audio.play();
+      syncMediaSession("playing");
+      void playAttempt.catch(() => {});
     }
   };
 
@@ -135,20 +229,20 @@ export function BackgroundMusic() {
       <audio
         ref={audioRef}
         src={MUSIC_SRC}
-        preload="auto"
+        preload='auto'
         playsInline
         loop
-        className="pointer-events-none invisible absolute h-0 w-0"
+        className='pointer-events-none invisible absolute h-0 w-0'
       />
 
       <button
-        type="button"
+        type='button'
         data-bg-music-toggle
         onClick={toggleMute}
         aria-label={showMuted ? "Bật nhạc nền" : "Tắt tiếng nhạc nền"}
         aria-pressed={showMuted}
         title={showMuted ? "Bật nhạc" : "Tắt tiếng"}
-        className="fixed right-3 top-[20%] z-[60] flex h-9 w-9 items-center justify-center border border-background/35 bg-primary/80 text-background backdrop-blur-sm transition-[opacity,background-color] duration-300 hover:bg-primary md:right-5"
+        className='fixed right-3 top-[20%] z-[60] flex h-9 w-9 items-center justify-center border border-background/35 bg-primary/80 text-background backdrop-blur-sm transition-[opacity,background-color] duration-300 hover:bg-primary md:right-5'
       >
         <SpeakerIcon muted={showMuted} />
       </button>

@@ -4,7 +4,11 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { getScroller, setCornerNavColor } from "@/lib/scroll/cornerNav";
+import {
+  getScroller,
+  setCornerNavColor,
+  setScrollPolygonVisible,
+} from "@/lib/scroll/cornerNav";
 import { MonogramLogoSvg, PolygonSvg } from "@/components/preloader";
 import {
   VENUES,
@@ -19,6 +23,15 @@ interface MapTarget {
   query: string;
   embedQuery?: string;
   url: string;
+}
+
+interface ScheduleStep {
+  time: string;
+  activity: string;
+  location?: {
+    name: string;
+    mapTarget?: MapTarget;
+  };
 }
 
 const FAMILY_SHORT_ADDRESS: Record<string, string> = {
@@ -41,6 +54,7 @@ interface WeddingEventConfig {
     mapsQuery: string;
     mapsUrl: string;
   };
+  schedule?: ScheduleStep[];
   ceremony: {
     inlineNote: string;
     inlineLocation: string;
@@ -67,6 +81,29 @@ const EVENT_CONFIGS: Record<WeddingRole, WeddingEventConfig> = {
       mapsQuery: "Trung Tâm Văn Hóa Thể Thao Xã Dương Xá, 15/9 Ỷ Lan, Gia Lâm, Hà Nội",
       mapsUrl: VENUES.his.mapsUrl,
     },
+    schedule: [
+      {
+        time: "08:00",
+        activity: "Đón dâu",
+      },
+      {
+        time: "10:00",
+        activity: "Lễ Thành Hôn",
+        location: {
+          name: "Tư gia Nhà Trai",
+          mapTarget: {
+            title: "Tư gia Nhà Trai",
+            query: "Số 2 Ngõ 12 Ỷ Lan, Đường Đình, Gia Lâm, Hà Nội",
+            embedQuery: "21.0050581,105.966173",
+            url: "https://maps.app.goo.gl/bVXBGy7KzpYezYQb9",
+          },
+        },
+      },
+      {
+        time: "10:45",
+        activity: "Khai tiệc",
+      },
+    ],
     ceremony: {
       inlineNote: "Lễ Thành Hôn cử hành lúc 10:00 tại",
       inlineLocation: "Tư gia Nhà Trai (Số 2 Ngõ 12 Ỷ Lan)",
@@ -282,13 +319,24 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
       end: "bottom 50%",
       scroller,
       invalidateOnRefresh: true,
-      onEnter: () => setCornerNavColor("accent"),
-      onEnterBack: () => setCornerNavColor("accent"),
-      onLeaveBack: () => setCornerNavColor("split-right-accent"),
+      onEnter: () => {
+        setCornerNavColor("accent");
+        setScrollPolygonVisible(false);
+      },
+      onEnterBack: () => {
+        setCornerNavColor("accent");
+        setScrollPolygonVisible(false);
+      },
+      onLeave: () => setScrollPolygonVisible(true),
+      onLeaveBack: () => {
+        setCornerNavColor("split-right-accent");
+        setScrollPolygonVisible(true);
+      },
     });
 
     return () => {
       chromeTrigger.kill();
+      setScrollPolygonVisible(true);
     };
   }, []);
 
@@ -509,25 +557,62 @@ export function WeddingSection({ role = "his" }: { role?: WeddingRole }) {
                 </button>
               </div>
 
-              {/* Ghi chú Lễ Thành Hôn / Vu Quy tại Tư Gia */}
-              <div className="mt-5 w-full max-w-md border-t border-[#2B3A2D]/15 pt-4">
-                <p className="font-sans text-[0.8125rem] sm:text-sm leading-[1.6] text-[#2B3A2D]/80 text-pretty">
-                  * {config.ceremony.inlineNote}{" "}
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openMap({
-                        title: config.ceremony.venueName,
-                        query: config.ceremony.mapsQuery,
-                        embedQuery: config.ceremony.embedQuery,
-                        url: config.ceremony.mapsUrl,
-                      })
-                    }
-                    className="cursor-pointer inline font-medium text-primary underline decoration-primary/50 underline-offset-4 transition-colors hover:decoration-primary"
-                  >
-                    {config.ceremony.inlineLocation} ↗
-                  </button>
-                </p>
+              {/* Lịch trình / Ghi chú buổi lễ */}
+              <div className="mt-5 w-full max-w-lg border-t border-[#2B3A2D]/15 pt-4">
+                {config.schedule ? (
+                  <div className="grid grid-cols-3 divide-x divide-[#2B3A2D]/25 font-sans text-center text-[0.6875rem] sm:text-xs leading-[1.45] text-[#2B3A2D]/85">
+                    {config.schedule.map((step) => (
+                      <div
+                        key={step.time}
+                        className="min-w-0 px-1.5 sm:px-2"
+                      >
+                        <span className="block font-display text-base sm:text-lg font-semibold tracking-wide text-primary tabular-nums">
+                          {step.time}
+                        </span>
+                        <span className="mt-1 block font-medium text-[#2B3A2D]/90">
+                          {step.activity}
+                        </span>
+                        {step.location && (
+                          <div className="mt-1.5 text-[0.625rem] sm:text-[0.6875rem] leading-[1.35]">
+                            {step.location.mapTarget ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openMap(step.location!.mapTarget!)
+                                }
+                                className="cursor-pointer font-medium text-primary underline decoration-primary/50 underline-offset-3 transition-colors hover:decoration-primary"
+                              >
+                                {step.location.name} ↗
+                              </button>
+                            ) : (
+                              <span className="font-medium text-primary">
+                                {step.location.name}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="font-sans text-[0.8125rem] sm:text-sm leading-[1.6] text-[#2B3A2D]/80 text-pretty">
+                    * {config.ceremony.inlineNote}{" "}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openMap({
+                          title: config.ceremony.venueName,
+                          query: config.ceremony.mapsQuery,
+                          embedQuery: config.ceremony.embedQuery,
+                          url: config.ceremony.mapsUrl,
+                        })
+                      }
+                      className="cursor-pointer inline font-medium text-primary underline decoration-primary/50 underline-offset-4 transition-colors hover:decoration-primary"
+                    >
+                      {config.ceremony.inlineLocation} ↗
+                    </button>
+                  </p>
+                )}
               </div>
             </div>
           </div>

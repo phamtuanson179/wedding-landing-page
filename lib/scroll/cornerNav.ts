@@ -197,6 +197,21 @@ export function setScrollProgressColor(theme: "accent" | "beige") {
   bar.classList.toggle("bg-background", theme === "beige");
 }
 
+export function setScrollPolygonVisible(visible: boolean) {
+  const scrollPolygon = getScrollPolygon();
+  if (!scrollPolygon) {
+    return;
+  }
+
+  gsap.to(scrollPolygon, {
+    autoAlpha: visible ? 1 : 0,
+    visibility: visible ? "visible" : "hidden",
+    duration: 0.25,
+    ease: "power2.out",
+    overwrite: true,
+  });
+}
+
 export function updateScrollProgressTheme() {
   const currentId = SECTION_IDS[getCurrentSectionIndex()];
   const useBeige = currentId === "section-6";
